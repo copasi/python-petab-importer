@@ -3,6 +3,10 @@ This project holds the code to import the parameter estimation benchmark problem
 
 * [Benchmark-Models](https://github.com/LeonardSchmiester/Benchmark-Models)
 
+they are also added as submodule to this repo. So if you do want to use those, be sure to check it out as well, running: 
+
+	git submodule init 
+	git submodule update
 
 ### Setup
 Create a new virtual environment, and then run `pip install requirements.txt`. Dependencies, are: 
