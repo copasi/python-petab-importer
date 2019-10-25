@@ -27,10 +27,11 @@ class PEtabProblem:
     def _get_file_from_folder(self, prefix, suffix):
         file_name = str(os.path.join(self.directory, '{0}_{1}.{2}'.format(prefix, self.model_name, suffix)))
         if not os.path.exists(file_name):
+            try1 = file_name
             file_name = str(os.path.join(self.directory, '{0}_{1}.{2}'
                                      .format(prefix, os.path.basename(self.directory), suffix)))
             if not os.path.exists(file_name):
-                raise ValueError('{0} file missing'.format(prefix))
+                raise ValueError('{0} file missing, looked for\n{1} and \n{2}'.format(prefix, try1, file_name))
         return file_name
 
     def _get_condition_file(self):
