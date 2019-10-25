@@ -70,7 +70,8 @@ class PEtabConverter:
     def get_columns(self, experiments):
         result = []
         for cond in experiments.keys():
-            for obs in experiments[cond]['columns'].keys():
+            current = experiments[cond]
+            for obs in current['columns'].keys():
                 if not obs in result:
                     result.append(obs)
         return result
@@ -107,7 +108,7 @@ class PEtabConverter:
                     output.write(str(experiments[cond]['time'][i]))
                     output.write('\t')
                     cols = experiments[cond]['columns']
-                    col_keys = cols.keys()
+                    col_keys = list(cols.keys())
                     for col_no in range(len(cols)):
                         if cols[col_keys[col_no]][i][0] != experiments[cond]['time'][i]:
                             raise ValueError('times are different, look into this')
@@ -128,9 +129,9 @@ class PEtabConverter:
             info = COPASI.CExperimentFileInfo(exp_set)
             info.setFileName(str(data_file))
             exp.setObjectName(cond)
-            exp.setFirstRow(1 if experiments[cond]['offset'] == 1 else experiments[cond]['offset'] + 1 )
-            cols = experiments[cond]['columns'].keys()
-            exp.setLastRow(experiments[cond]['offset'] + len(experiments[cond]['columns'][cols[0]]) )
+            exp.setFirstRow(1 if experiments[cond]['offset'] == 1 else experiments[cond]['offset'] + 1)
+            cols = list(experiments[cond]['columns'].keys())
+            exp.setLastRow(experiments[cond]['offset'] + len(experiments[cond]['columns'][cols[0]]))
             exp.setHeaderRow(1)
             exp.setFileName(str(os.path.basename(data_file)))
             exp.setExperimentType(COPASI.CTaskEnum.Task_timeCourse)
@@ -158,14 +159,14 @@ class PEtabConverter:
                 map.setRole(i, type)
 
     def generate_copasi_data(self, petab, experimental_data_file):
-        print(petab.measurement_file)
-        data = petab.measurement_data
 
-        experiments = self.get_experiments(data)
+        experiments = self.get_experiments(petab)
         self.write_experiments(experiments, experimental_data_file)
         self.create_mapping(experiments, experimental_data_file)
 
-    def get_experiments(self, data):
+    def get_experiments(self, petab):
+        data = petab.measurement_data
+        conditions = petab.condition_data
         experiments = {}
         for i in range(data.shape[0]):
 
@@ -174,11 +175,17 @@ class PEtabConverter:
             time = data.time[i]
             value = data.measurement[i]
             params = data.observableParameters[i] if 'observableParameters' in data else None
-            self.add_transformation_for_params(obs, params)
             transformation = data.observableTransformation[i] if 'observableTransformation' in data else 'lin'
+            condition = data.simulationConditionId[i] if 'simulationConditionId' in data else None
 
             if cond not in experiments.keys():
-                experiments[cond] = {'name': cond, 'columns': {}, 'time': [], 'offset': 0}
+                experiments[cond] = {'name': cond,
+                                     'columns': {},
+                                     'time': [],
+                                     'offset': 0,
+                                     'condition': condition}
+                # add transformations only once
+                self.add_transformation_for_params(obs, params)
 
             if obs not in experiments[cond]['columns'].keys():
                 experiments[cond]['columns'][obs] = []
@@ -253,7 +260,8 @@ class PEtabConverter:
         count = 0
 
         if np.isreal(params):
-            self.add_value_transform(params, 1, obs)
+            if not not np.isnan(params):
+                self.add_value_transform(params, 1, obs)
             return
 
         for param in params.split(';'):
