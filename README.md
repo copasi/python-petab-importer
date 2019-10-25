@@ -3,10 +3,19 @@ This project holds the code to import the parameter estimation benchmark problem
 
 * [Benchmark-Models](https://github.com/LeonardSchmiester/Benchmark-Models)
 
-they are also added as submodule to this repo. So if you do want to use those, be sure to check it out as well, running: 
+These models are encoded in the [PEtab](https://github.com/ICB-DCM/PEtab/) format with this [documentation](https://github.com/ICB-DCM/PEtab/blob/master/doc/documentation_data_format.md). The format specifies: 
+
+* an SBML file with the model definition
+* a measurement file with the experimental data
+* a condition file that specifies different initial conditions
+
+So this converter 1. reads the SBML file and converts it to the COPASI format, then converts the experimental data so we can use it in COPASI, and provides the mapping to the observables. Once the converter is done, and you run the parameter estimation you will get the current solution displayed. 
+
+The benchmarks are also added as submodule to this repo. So if you do want to use those, be sure to check it out as well, running: 
 
 	git submodule init 
 	git submodule update
+
 
 ### Setup
 Create a new virtual environment, and then run `pip install requirements.txt`. Dependencies, are: 
