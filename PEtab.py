@@ -1,17 +1,19 @@
 import os
 import sys
 import traceback
-from PyQt5.QtWidgets import QMainWindow, QWidget, QDesktopWidget, QApplication, QFileDialog, QDirModel, QMessageBox, QListWidget
+from PyQt5.QtWidgets import QMainWindow, QWidget, QDesktopWidget, QApplication, QFileDialog, QDirModel, QMessageBox, \
+    QListWidget
 from PyQt5 import uic
 from PyQt5.QtCore import qDebug, QUrl, QSettings, Qt
 from PyQt5.QtGui import QDesktopServices
 
 import convert_petab
 
+
 class PETabGui(QMainWindow):
 
     def __init__(self):
-        #super().__init__()
+        # super().__init__()
         QMainWindow.__init__(self)
 
         self.dir = None
@@ -30,9 +32,9 @@ class PETabGui(QMainWindow):
         self.save_settings()
 
     def load_settings(self):
-        settings = QSettings("copasi", "PEtabImporter")
+        settings = QSettings("petab.ini", QSettings.IniFormat)
 
-        self.dir = settings.value("dir", r'E:\Development\Benchmark-Models\hackathon_contributions_new_data_format')
+        self.dir = settings.value("dir", r'./benchmarks/hackathon_contributions_new_data_format')
         self.model_dir = settings.value("model_dir", r'Becker_Science2010')
         self.model = settings.value("model", 'Becker_Science2010__BaF3_Exp')
         self.out_dir = settings.value("out_dir", './out')
@@ -41,7 +43,7 @@ class PETabGui(QMainWindow):
         self.ui.txtOutDir.setText(self.out_dir)
 
     def save_settings(self):
-        settings = QSettings("copasi", "PEtabImporter")
+        settings = QSettings("petab.ini", QSettings.IniFormat)
         settings.setValue("dir", self.dir)
         settings.setValue("model_dir", self.model_dir)
         settings.setValue("model", self.model)
@@ -89,7 +91,7 @@ class PETabGui(QMainWindow):
         if selected is None:
             self.model_dir = None
         else:
-            self.model_dir = os.path.join(self.dir, selected.text())
+            self.model_dir = selected.text()
         self.slotSetModelDir(self.model_dir)
 
     def load_model_dirs(self):
@@ -134,7 +136,7 @@ class PETabGui(QMainWindow):
             self.out_dir = self.ui.txtOutDir.text()
             if not os.path.exists(self.out_dir):
                 os.makedirs(self.out_dir, exist_ok=True)
-            converter = convert_petab.PEtabConverter(self.model_dir, self.model, self.out_dir, self.model)
+            converter = convert_petab.PEtabConverter(os.path.join(self.dir, self.model_dir), self.model, self.out_dir, self.model)
             converter.convert()
             if converter.experimental_data_file is not None:
                 with open(converter.experimental_data_file, 'r') as data:
