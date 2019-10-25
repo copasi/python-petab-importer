@@ -2,6 +2,7 @@ import COPASI
 import sys
 import os
 import pandas as pd
+import numpy as np
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
@@ -172,7 +173,8 @@ class PEtabConverter:
             cond = data.simulationConditionId[i]
             time = data.time[i]
             value = data.measurement[i]
-            params = data.observableParameters[i]
+            params = data.observableParameters[i] if 'observableParameters' in data else None
+            self.add_transformation_for_params(obs, params)
             transformation = data.observableTransformation[i] if 'observableTransformation' in data else 'lin'
 
             if cond not in experiments.keys():
@@ -244,6 +246,36 @@ class PEtabConverter:
 
     def convert(self):
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
+
+    def add_transformation_for_params(self, obs, params):
+        # type: (str, str) -> None
+        """ some model requires us to add assignment rules to observable parameters"""
+        count = 0
+
+        if np.isreal(params):
+            self.add_value_transform(params, 1, obs)
+            return
+
+        for param in params.split(';'):
+            count += 1
+            obj = dm.findObjectByDisplayName('Values[' + param + ']')
+            if obj is None:
+                # it could be a value
+                self.add_value_transform(param, count, obs)
+                continue
+
+            obsParam = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(count, obs))
+            if obsParam is None or not isinstance(obsParam, COPASI.CModelValue):
+                continue
+            obsParam.setStatus(COPASI.CModelValue.Status_ASSIGNMENT)
+            obsParam.setExpression('<{0}>'.format(obj.getCN()))
+
+    def add_value_transform(self, value, index, obs):
+        if np.isreal(value):
+            obsParam = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(index, obs))
+            if obsParam is None or not isinstance(obsParam, COPASI.CModelValue):
+                return
+            obsParam.setValue(value)
 
 
 if __name__ == "__main__":
