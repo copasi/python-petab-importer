@@ -72,6 +72,7 @@ class PETabGui(QMainWindow):
 
     def slotSetModel(self, model):
         self.model = model
+        self.setWindowFilePath(model)
         items = self.ui.lstModels.findItems(self.model, Qt.MatchFixedString)
         if len(items) > 0:
             self.ui.lstModels.setCurrentItem(items[0])
@@ -132,6 +133,9 @@ class PETabGui(QMainWindow):
         self.slotSetOutputDir(result)
 
     def slotConvert(self):
+        self.ui.cmdConvert.setEnabled(False)
+        self.ui.cmdOpenInCOPASI.setEnabled(False)
+        QApplication.processEvents()
         try:
             self.out_dir = self.ui.txtOutDir.text()
             if not os.path.exists(self.out_dir):
@@ -145,6 +149,8 @@ class PETabGui(QMainWindow):
         except:
             msg = traceback.format_exc()
             QMessageBox.critical(self, 'Error converting', msg)
+        self.ui.cmdConvert.setEnabled(True)
+        self.ui.cmdOpenInCOPASI.setEnabled(True)
 
     def center(self):
         qr = self.frameGeometry()
