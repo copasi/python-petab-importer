@@ -21,9 +21,47 @@ class PEtabProblem:
         self.model_file = self._get_model_file()
 
         self.measurement_data = pd.read_csv(self.measurement_file, sep='\t')
+        self.experiment_time_points = self._get_time_points(self.measurement_data)
         self.condition_data = pd.read_csv(self.condition_file, sep='\t')
+        self.independent_columns = self._get_independent_columns(self.condition_data)
         self.parameter_data = pd.read_csv(self.parameter_file, sep='\t')
         self.simulation_data = None if self.simulation_file is None else pd.read_csv(self.simulation_file, sep='\t')
+
+    @staticmethod
+    def _get_time_points(data_set):
+        # type: (pd.DataFrame) -> {}
+        result = {}
+        for i in range(data_set.shape[0]):
+            current = data_set.iloc[i]
+            exp = current.simulationConditionId
+            if exp not in result:
+                result[exp] = {}
+            if current.time not in result[exp]:
+                result[exp][current.time] = {}
+            obs = current.observableId
+            if obs not in result[exp][current.time]:
+                result[exp][current.time][obs] = 0
+            result[exp][current.time][obs] += 1
+            #result[exp][current.time].append(current.time)
+        for key in result:
+            current = result[key]
+            times = []
+            for point in current:
+                replicates = max(1, max(current[point].values()))
+                for i in range(replicates):
+                    times.append(point)
+            result[key] = sorted(times)
+        return result
+
+    @staticmethod
+    def _get_independent_columns(data_set):
+        # type: (pd.DataFrame) -> []
+        result = []
+        for col in data_set.columns:
+            if col == 'conditionId' or col == 'conditionName':
+                continue
+            result.append(col)
+        return result
 
     def _get_file_from_folder(self, prefix, suffix):
         file_name = str(os.path.join(self.directory, '{0}_{1}.{2}'.format(prefix, self.model_name, suffix)))
@@ -67,12 +105,14 @@ class PEtabConverter:
             self.out_name = model_name
         self.experimental_data_file = None
 
-    def get_columns(self, experiments):
+    @staticmethod
+    def get_columns(experiments):
+        # type: ({}) -> []
         result = []
         for cond in experiments.keys():
             current = experiments[cond]
             for obs in current['columns'].keys():
-                if not obs in result:
+                if obs not in result:
                     result.append(obs)
         return result
 
@@ -83,90 +123,134 @@ class PEtabConverter:
             output.write('\t')
             output.write(col)
 
-    def get_num_rows(self, experiment):
+    @staticmethod
+    def get_num_rows(experiment):
         for obs in experiment['columns'].keys():
             return len(experiment['columns'][obs])
         return 0
 
-    def write_experiments(self, experiments, experimental_data_file):
-        # type:({}, str) -> None
+    def write_experiments(self, experiments, petab):
+        # type:({}, PEtabProblem) -> None
 
-        # potentially it could be important to write several experiment files, if the time points would not
-        # match, but i hope we can avoid it.  the function below will fail in case time is different for the experiments
-        # write_all_times = are_times_equal(experiments)
-
-        with open(experimental_data_file, 'w') as output:
+        with open(self.experimental_data_file, 'w') as output:
             # write header
             self.write_headers(output, experiments)
+            # append independent columns
+            for col in petab.independent_columns:
+                output.write('\t%s' % col)
+
+            all_cols = self.get_columns(experiments)
             line = 0
             for cond in experiments.keys():
                 output.write('\n')
                 line += 1
-                experiments[cond]['offset'] = line
-                rows = self.get_num_rows(experiments[cond])
+                current_exp = experiments[cond]
+                current_exp['offset'] = line
+                times = petab.experiment_time_points[cond]
+                rows = len(times)  # self.get_num_rows(current_exp)
                 for i in range(rows):
-                    output.write(str(experiments[cond]['time'][i]))
+                    output.write(str(times[i]))
                     output.write('\t')
-                    cols = experiments[cond]['columns']
-                    col_keys = list(cols.keys())
-                    for col_no in range(len(cols)):
-                        if cols[col_keys[col_no]][i][0] != experiments[cond]['time'][i]:
-                            raise ValueError('times are different, look into this')
-                        output.write(str(cols[col_keys[col_no]][i][1]))
-                        if col_no+1 < len(cols):
+                    cols = current_exp['columns']
+                    for col_no in range(len(all_cols)):
+                        if not all_cols[col_no] in cols:
+                            if col_no + 1 < len(all_cols):
+                                output.write('\t')
+                            continue
+                        vals = cols[all_cols[col_no]]
+                        cur_val = vals[i]
+                        if cur_val[0] == current_exp['time'][i]:
+                            output.write(str(cur_val[1]))
+                        if col_no+1 < len(all_cols):
                             output.write('\t')
+
+                    # append independents for first row
+                    if i == 0:
+                        conditions = petab.condition_data[petab.condition_data.conditionId == current_exp['condition']]
+                        for col in petab.independent_columns:
+                            output.write('\t')
+                            output.write(str(float(conditions[col])))
                     output.write('\n')
                     line += 1
 
-    def create_mapping(self, experiments, data_file):
+    def create_mapping(self, experiments, petab):
         task = dm.getTask('Parameter Estimation')
         problem = task.getProblem()
         exp_set = problem.getExperimentSet()
 
+        all_cols = self.get_columns(experiments)
+
         for cond in experiments.keys():
+            cur_exp = experiments[cond]
+            if len(cur_exp['time']) == 0:
+                continue  # no data return
+
             exp = COPASI.CExperiment(dm)
             exp = exp_set.addExperiment(exp)
             info = COPASI.CExperimentFileInfo(exp_set)
-            info.setFileName(str(data_file))
+            info.setFileName(str(self.experimental_data_file))
             exp.setObjectName(cond)
-            exp.setFirstRow(1 if experiments[cond]['offset'] == 1 else experiments[cond]['offset'] + 1)
-            cols = list(experiments[cond]['columns'].keys())
-            exp.setLastRow(experiments[cond]['offset'] + len(experiments[cond]['columns'][cols[0]]))
+            exp.setFirstRow(1 if cur_exp['offset'] == 1 else cur_exp['offset'] + 1)
+            cols = all_cols
+            times = petab.experiment_time_points[cur_exp['condition']]
+            exp.setLastRow(cur_exp['offset'] + len(times))
             exp.setHeaderRow(1)
-            exp.setFileName(str(os.path.basename(data_file)))
-            exp.setExperimentType(COPASI.CTaskEnum.Task_timeCourse)
+            exp.setFileName(str(os.path.basename(self.experimental_data_file)))
+            is_tc = True
+            if np.isinf(times[0]):
+                exp.setExperimentType(COPASI.CTaskEnum.Task_steadyState)
+                is_tc = False
+            else:
+                exp.setExperimentType(COPASI.CTaskEnum.Task_timeCourse)
             exp.setSeparator('\t')
             info.sync()
-            cols.insert(0, 'time')
-            exp.setNumColumns(len(cols))
+            if 'time' not in cols:
+                cols.insert(0, 'time')
+
+            cond_cols = petab.independent_columns
+            num_conditions = len(cond_cols)
+
+            num_cols = len(cols)
+            exp.setNumColumns(num_cols + num_conditions)
 
             # now do the mapping
-            map = exp.getObjectMap()
-            map.setNumCols(len(cols))
-            for i in range(len(cols)):
-                type = COPASI.CExperiment.ignore
-                if cols[i] == 'time':
-                    type = COPASI.CExperiment.time
+            obj_map = exp.getObjectMap()
+            obj_map.setNumCols(num_cols + num_conditions)
+            for i in range(num_cols):
+                role = COPASI.CExperiment.ignore
+                if cols[i] == 'time' and is_tc:
+                    role = COPASI.CExperiment.time
                 else:
-                    obj = dm.findObjectByDisplayName('Values[observable_' + cols[i] + ']')
-                    if obj is not None:
-                        cn = obj.getValueReference().getCN()
-                        type = COPASI.CExperiment.dependent
-                        map.setRole(i, type)
-                        map.setObjectCN(i, cn)
-                        exp.calculateWeights()
-                        continue
-                map.setRole(i, type)
+                    if all_cols[i] in cur_exp['columns']:
+                        obj = dm.findObjectByDisplayName('Values[observable_' + cols[i] + ']')
+                        if obj is not None:
+                            cn = obj.getValueReference().getCN()
+                            role = COPASI.CExperiment.dependent
+                            obj_map.setRole(i, role)
+                            obj_map.setObjectCN(i, cn)
+                            exp.calculateWeights()
+                            continue
+                obj_map.setRole(i, role)
 
-    def generate_copasi_data(self, petab, experimental_data_file):
+            for i in range(num_conditions):
+                role = COPASI.CExperiment.ignore
+                obj = dm.findObjectByDisplayName('Values[' + cond_cols[i] + ']')
+                if obj is not None:
+                    cn = obj.getInitialValueReference().getCN()
+                    role = COPASI.CExperiment.independent
+                    obj_map.setRole(num_cols + i, role)
+                    obj_map.setObjectCN(num_cols + i, cn)
+                    continue
+                obj_map.setRole(num_cols + i, role)
 
-        experiments = self.get_experiments(petab)
-        self.write_experiments(experiments, experimental_data_file)
-        self.create_mapping(experiments, experimental_data_file)
+    def generate_copasi_data(self, petab):
+
+        self.experiments = self.get_experiments(petab)
+        self.write_experiments(self.experiments, petab)
+        self.create_mapping(self.experiments, petab)
 
     def get_experiments(self, petab):
         data = petab.measurement_data
-        conditions = petab.condition_data
         experiments = {}
         for i in range(data.shape[0]):
 
@@ -184,17 +268,51 @@ class PEtabConverter:
                                      'time': [],
                                      'offset': 0,
                                      'condition': condition}
+
+            cur_exp = experiments[cond]
+            if obs not in cur_exp['columns'].keys():
+                cur_exp['columns'][obs] = []
                 # add transformations only once
                 self.add_transformation_for_params(obs, params)
 
-            if obs not in experiments[cond]['columns'].keys():
-                experiments[cond]['columns'][obs] = []
+            cur_exp['columns'][obs].append((time, value, params, transformation))
 
-            experiments[cond]['columns'][obs].append((time, value, params, transformation))
-            experiments[cond]['time'].append(time)
+        for cond in experiments:
+            cur_exp = experiments[cond]
+            times = petab.experiment_time_points[cond]
+            cur_exp['time'] = times
+            for obs in cur_exp['columns']:
+                cur_obs = cur_exp['columns'][obs]
+                padded_obs = self.pad_data(times, cur_obs)
+                experiments[cond]['columns'][obs] = padded_obs
+
+        # pad columns
         return experiments
 
-    def add_fit_items(self, parameters):
+    @staticmethod
+    def pad_data(times, data):
+        # type: ([],[()]) -> []
+        result = []
+        index = 0
+        num_entries = len(data)
+        for time in times:
+            if index >= num_entries:
+                dummy = data[0]
+                result.append((time, np.nan, dummy[2], dummy[3]))
+                continue
+            current = data[index]
+            cur_time = current[0]
+            if cur_time == time:
+                result.append(current)
+                index = index + 1
+            else:
+                dummy = data[0]
+                result.append((time, np.nan, dummy[2], dummy[3]))
+                pass
+        return result
+
+    @staticmethod
+    def add_fit_items(parameters):
         task = dm.getTask('Parameter Estimation')
         problem = task.getProblem()
 
@@ -202,12 +320,12 @@ class PEtabConverter:
             current = parameters.iloc[i]
             name = current.parameterId
 
-            pObj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
+            obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
 
-            if pObj is None:
+            if obj is None:
                 continue
 
-            cn = pObj.getInitialValueReference().getCN()
+            cn = obj.getInitialValueReference().getCN()
 
             if current.parameterScale == 'log10':
                 lower = pow(10.0, float(current['lowerBound']))
@@ -238,7 +356,7 @@ class PEtabConverter:
             raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
         dm.saveModel(output_model, True)
         self.experimental_data_file = os.path.join(out_dir, out_name + '.txt')
-        self.generate_copasi_data(petab, self.experimental_data_file)
+        self.generate_copasi_data(petab)
         # now add fit items
         self.add_fit_items(petab.parameter_data)
         dm.saveModel(output_model, True)
@@ -272,18 +390,19 @@ class PEtabConverter:
                 self.add_value_transform(param, count, obs)
                 continue
 
-            obsParam = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(count, obs))
-            if obsParam is None or not isinstance(obsParam, COPASI.CModelValue):
+            obs_param = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(count, obs))
+            if obs_param is None or not isinstance(obs_param, COPASI.CModelValue):
                 continue
-            obsParam.setStatus(COPASI.CModelValue.Status_ASSIGNMENT)
-            obsParam.setExpression('<{0}>'.format(obj.getCN()))
+            obs_param.setStatus(COPASI.CModelValue.Status_ASSIGNMENT)
+            obs_param.setExpression('<{0}>'.format(obj.getCN()))
 
-    def add_value_transform(self, value, index, obs):
+    @staticmethod
+    def add_value_transform(value, index, obs):
         if np.isreal(value):
-            obsParam = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(index, obs))
-            if obsParam is None or not isinstance(obsParam, COPASI.CModelValue):
+            obs_param = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(index, obs))
+            if obs_param is None or not isinstance(obs_param, COPASI.CModelValue):
                 return
-            obsParam.setValue(value)
+            obs_param.setValue(value)
 
 
 if __name__ == "__main__":
