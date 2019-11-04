@@ -25,7 +25,30 @@ Create a new virtual environment, and then run `pip install requirements.txt`. D
 * pandas 
 
 ### Usage
-Once installed, you can use the graphical user interface, specify the benchmark directory, select the test and the model, and you ought to be able to open the generated COPASI file directly.
+Once installed, you can use the graphical user interface, specify the benchmark directory, select the test and the model, and you ought to be able to open the generated COPASI file directly. You do this by running: 
+
+    python PEtab.py
+    
+<img src="./doc/demo.gif">
+    
+Alternatively you cold convert the benchmark models directly by invoking the converter: 
+
+    python convert_petab.py <benchmark_dir> <model_name> <output_dir>
+    
+where:
+
+  * `benchmark_dir` is a directory to a pe tab dir, like `./hackathon_contributions_new_data_format/Becker_Science2010`.
+  * `model_name` is one of the model names in the directory like `Becker_Science2010__BaF3_Exp`. The program assumes, that the measurement data and condition data files are in the directory containing the model name (otherwise any measurement / condition file will be greedily taken)
+  * `output_dir` is the directory into which the output will be written. For example '/out'. In this case at the end of the run the files `Becker_Science2010__BaF3_Exp.cps` and `Becker_Science2010__BaF3_Exp.txt` would be generated. 
+
+Also added a bulk converter: 
+
+    python convert_all_petab.py <base_dir> <output_dir>
+    
+where:
+
+  * `base_dir` is the pe tab root dir, as in `./hackathon_contributions_new_data_format/`
+  * `output_dir` the directory in which the files will be saved in
 
 ### License
 Just as COPASI, the packages available on this page are provided under the 
