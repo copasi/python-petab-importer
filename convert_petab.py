@@ -165,17 +165,22 @@ class PEtabConverter:
                             output.write('\t')
 
                     # append independents for first row
-                    if i == 0:
+                    if i == 0 and 'conditionId' in petab.condition_data:
                         conditions = petab.condition_data[petab.condition_data.conditionId == current_exp['condition']]
                         for col in petab.independent_columns:
                             output.write('\t')
-                            output.write(str(float(conditions[col])))
+                            try:
+                                output.write(str(float(conditions[col])))
+                            except:
+                                output.write(str(conditions[col]))
                     output.write('\n')
                     line += 1
 
     def create_mapping(self, experiments, petab):
         task = dm.getTask('Parameter Estimation')
+        task.setScheduled(True)                 # mark task as executable, so it can be run by copasi se
         problem = task.getProblem()
+        problem.setCalculateStatistics(False)   # disable statistics at the end of the runs
         exp_set = problem.getExperimentSet()
 
         all_cols = self.get_columns(experiments)
@@ -368,6 +373,7 @@ class PEtabConverter:
         COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
         COPASI.COutputAssistant.createDefaultOutput(910, task, dm)
         dm.saveModel(output_model, True)
+        dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')), True, False, True, False, True)
 
     def convert(self):
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
