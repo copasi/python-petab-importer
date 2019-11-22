@@ -1,0 +1,10 @@
+[flake8]
+exclude =
+    ./benchmarks,
+    ./doc,
+    ./idea,
+    ./.vs,
+    ./.vscode,
+    ./out,
+    ./test,
+    .git
