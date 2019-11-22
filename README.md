@@ -1,4 +1,4 @@
-## Parameter Estimation Benchmark Importer
+## PEtab Importer
 This project holds the code to import the parameter estimation benchmark problems into [COPASI](https://copasi.org). The test cases it ought to be able to deal with are from this project: 
 
 * [Benchmark-Models](https://github.com/LeonardSchmiester/Benchmark-Models)
