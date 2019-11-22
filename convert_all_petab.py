@@ -11,16 +11,7 @@ def convert_all_benchmarks(base_dir, out_dir):
 
     for directory in dirs:
         current_dir = os.path.join(base_dir, directory)
-        models = []
-        for (dirpath, dirnames, filenames) in os.walk(current_dir):
-            for name in filenames:
-                assert(isinstance(name, str))
-                if name.endswith('.xml'):
-                    name = name[:-4]
-                    if name.startswith('model_'):
-                        name = name[6:]
-                    models.append(name)
-        models = sorted(models)
+        models = get_all_models(current_dir)
         num_models = len(models)
         if num_models == 0:
             print("No models for %s ... skipping" % directory)
@@ -28,17 +19,38 @@ def convert_all_benchmarks(base_dir, out_dir):
 
         for model in models:
             if num_models == 1:
-                print("   Converting model {0}".format(model))
+                print("  Converting model {0}".format(model))
             else:
-                print("   Converting model {0} of {1}".format(model, directory))
-            try:
-                worker = convert_petab.PEtabConverter(current_dir, model, out_dir)
-                worker.convert()
-            except:
-                import traceback
-                print("Couldn't convert {0} due to\n\n{1}".format(model, traceback.format_exc()))
+                print("  Converting model {0} of {1}".format(model, directory))
+
+            convert_model(current_dir, model, out_dir)
 
     pass
+
+
+def get_all_models(current_dir):
+    models = []
+    for (dirpath, dirnames, filenames) in os.walk(current_dir):
+        for name in filenames:
+            assert (isinstance(name, str))
+            if name.endswith('.xml'):
+                name = name[:-4]
+                if name.startswith('model_'):
+                    name = name[6:]
+                models.append(name)
+    models = sorted(models)
+    return models
+
+
+def convert_model(current_dir, model, out_dir):
+    try:
+        worker = convert_petab.PEtabConverter(current_dir,
+                                              model, out_dir)
+        worker.convert()
+    except BaseException:
+        import traceback
+        print("Couldn't convert {0} due to\n\n{1}".format(
+            model, traceback.format_exc()))
 
 
 if __name__ == "__main__":

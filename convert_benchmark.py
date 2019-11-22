@@ -37,22 +37,22 @@ def create_experimental_data_mapping(data, exp_file_name):
     exp.setNumColumns(len(cols))
 
     # now do the mapping
-    map = exp.getObjectMap()
-    map.setNumCols(len(cols))
+    obj_map = exp.getObjectMap()
+    obj_map.setNumCols(len(cols))
     for i in range(len(cols)):
-        type = COPASI.CExperiment.ignore
+        exp_type = COPASI.CExperiment.ignore
         if cols[i] == 'time':
-            type = COPASI.CExperiment.time
+            exp_type = COPASI.CExperiment.time
         else:
             obj = dm.findObjectByDisplayName('Values[' + cols[i] + ']')
             if obj is not None:
                 cn = obj.getValueReference().getCN()
-                type = COPASI.CExperiment.dependent
-                map.setRole(i, type)
-                map.setObjectCN(i, cn)
+                exp_type = COPASI.CExperiment.dependent
+                obj_map.setRole(i, exp_type)
+                obj_map.setObjectCN(i, cn)
                 exp.calculateWeights()
                 continue
-        map.setRole(i, type)
+        obj_map.setRole(i, exp_type)
 
 
 def add_fit_items(parameters):
@@ -65,33 +65,36 @@ def add_fit_items(parameters):
         if 'log10(' in name:
             name = name[name.index('(') + 1: name.rindex(')')]
 
-        pObj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
+        obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
 
-        if pObj is None:
+        if obj is None:
             continue
 
-        cn = pObj.getInitialValueReference().getCN()
+        cn = obj.getInitialValueReference().getCN()
 
         lower = pow(10.0, float(current['lower boundary']))
         upper = pow(10.0, float(current['upper boundary']))
         value = pow(10.0, float(current['value']))
 
-        item = problem.addOptItem(cn)   # if we found it, we can get its internal identifier and create the item
+        # if we found it, get its internal identifier and create the item
+        item = problem.addOptItem(cn)
         item.setLowerBound(COPASI.CCommonName(str(lower)))   # set the lower
         item.setUpperBound(COPASI.CCommonName(str(upper)))   # and upper bound
         item.setStartValue(value)                # as well as the initial value
 
 
-def convert_benchmark(model_file, data_file, info_file, output_dir, output_name):
+def convert_benchmark(sbml_file, data_file, info_file, output_dir, out_name):
     parameters = get_parameters_from_info_file(info_file)
     data = get_experimental_data(data_file)
-    exp_file_name = os.path.join(output_dir, os.path.splitext(os.path.basename(output_name))[0] + '.txt')
+    exp_file_name = os.path.join(output_dir,
+                                 os.path.splitext(
+                                     os.path.basename(out_name))[0] + '.txt')
     data.to_csv(exp_file_name, index=False)
 
-    if not dm.importSBML(model_file):
+    if not dm.importSBML(sbml_file):
         raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
 
-    dm.saveModel(os.path.join(output_dir, output_name), True)
+    dm.saveModel(os.path.join(output_dir, out_name), True)
 
     # map the experimental data
     create_experimental_data_mapping(data, exp_file_name)
@@ -99,8 +102,8 @@ def convert_benchmark(model_file, data_file, info_file, output_dir, output_name)
     # now add fit items
     add_fit_items(parameters)
 
-    dm.saveModel(os.path.join(output_dir, output_name), True)
-    dm.loadModel(os.path.join(output_dir, output_name))
+    dm.saveModel(os.path.join(output_dir, out_name), True)
+    dm.loadModel(os.path.join(output_dir, out_name))
 
     # add plot for progress & result
     task = dm.getTask('Parameter Estimation')
@@ -110,7 +113,7 @@ def convert_benchmark(model_file, data_file, info_file, output_dir, output_name)
     COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
     COPASI.COutputAssistant.createDefaultOutput(910, task, dm)
 
-    dm.saveModel(os.path.join(output_dir, output_name), True)
+    dm.saveModel(os.path.join(output_dir, out_name), True)
 
 
 if __name__ == "__main__":
@@ -122,10 +125,12 @@ if __name__ == "__main__":
         output_dir = sys.argv[4]
         output_name = sys.argv[5]
     else:
-        model_file = r'E:\Development\Benchmark-Models\Benchmark-Models\Bachmann_MSB2011\SBML\model1_data1_l2v4.xml'
-        data_file = r'E:\Development\Benchmark-Models\Benchmark-Models\Bachmann_MSB2011\Data\model1_data1.xlsx'
-        info_file = r'E:\Development\Benchmark-Models\Benchmark-Models\Bachmann_MSB2011\General_info.xlsx'
+        bench_dir = './benchmarks/Benchmark-Models/Bachmann_MSB2011'
+        model_file = bench_dir + '/SBML/model1_data1_l2v4.xml'
+        data_file = bench_dir + '/Data/model1_data1.xlsx'
+        info_file = bench_dir + '/General_info.xlsx'
         output_dir = '.'
         output_name = 'out_bach1.cps'
 
-    convert_benchmark(model_file, data_file, info_file, output_dir, output_name)
+    convert_benchmark(model_file, data_file, info_file,
+                      output_dir, output_name)

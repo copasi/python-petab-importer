@@ -21,11 +21,14 @@ class PEtabProblem:
         self.model_file = self._get_model_file()
 
         self.measurement_data = pd.read_csv(self.measurement_file, sep='\t')
-        self.experiment_time_points = self._get_time_points(self.measurement_data)
+        self.experiment_time_points = \
+            self._get_time_points(self.measurement_data)
         self.condition_data = pd.read_csv(self.condition_file, sep='\t')
-        self.independent_columns = self._get_independent_columns(self.condition_data)
+        self.independent_columns =\
+            self._get_independent_columns(self.condition_data)
         self.parameter_data = pd.read_csv(self.parameter_file, sep='\t')
-        self.simulation_data = None if self.simulation_file is None else pd.read_csv(self.simulation_file, sep='\t')
+        self.simulation_data = None if self.simulation_file is None \
+            else pd.read_csv(self.simulation_file, sep='\t')
 
     @staticmethod
     def _get_time_points(data_set):
@@ -42,7 +45,6 @@ class PEtabProblem:
             if obs not in result[exp][current.time]:
                 result[exp][current.time][obs] = 0
             result[exp][current.time][obs] += 1
-            #result[exp][current.time].append(current.time)
         for key in result:
             current = result[key]
             times = []
@@ -64,13 +66,17 @@ class PEtabProblem:
         return result
 
     def _get_file_from_folder(self, prefix, suffix):
-        file_name = str(os.path.join(self.directory, '{0}_{1}.{2}'.format(prefix, self.model_name, suffix)))
+        file_name = str(os.path.join(self.directory,
+                                     '{0}_{1}.{2}'.format(
+                                         prefix, self.model_name, suffix)))
         if not os.path.exists(file_name):
             try1 = file_name
+            basename = os.path.basename(self.directory)
             file_name = str(os.path.join(self.directory, '{0}_{1}.{2}'
-                                     .format(prefix, os.path.basename(self.directory), suffix)))
+                                         .format(prefix, basename, suffix)))
             if not os.path.exists(file_name):
-                raise ValueError('{0} file missing, looked for\n{1} and \n{2}'.format(prefix, try1, file_name))
+                raise ValueError('{0} file missing, looked for\n{1} and \n{2}'.
+                                 format(prefix, try1, file_name))
         return file_name
 
     def _get_condition_file(self):
@@ -88,7 +94,7 @@ class PEtabProblem:
     def _get_simulation_file(self):
         try:
             return self._get_file_from_folder('simulationData', 'tsv')
-        except:
+        except ValueError:
             return None
 
 
@@ -161,26 +167,30 @@ class PEtabConverter:
                         cur_val = vals[i]
                         if cur_val[0] == current_exp['time'][i]:
                             output.write(str(cur_val[1]))
-                        if col_no+1 < len(all_cols):
+                        if col_no + 1 < len(all_cols):
                             output.write('\t')
 
                     # append independents for first row
                     if i == 0 and 'conditionId' in petab.condition_data:
-                        conditions = petab.condition_data[petab.condition_data.conditionId == current_exp['condition']]
+                        conditions = petab.condition_data[
+                            petab.condition_data.conditionId ==
+                            current_exp['condition']]
                         for col in petab.independent_columns:
                             output.write('\t')
                             try:
                                 output.write(str(float(conditions[col])))
-                            except:
+                            except ValueError:
                                 output.write(str(conditions[col]))
                     output.write('\n')
                     line += 1
 
     def create_mapping(self, experiments, petab):
         task = dm.getTask('Parameter Estimation')
-        task.setScheduled(True)                 # mark task as executable, so it can be run by copasi se
+        # mark task as executable, so it can be run by copasi se
+        task.setScheduled(True)
         problem = task.getProblem()
-        problem.setCalculateStatistics(False)   # disable statistics at the end of the runs
+        # disable statistics at the end of the runs
+        problem.setCalculateStatistics(False)
         exp_set = problem.getExperimentSet()
 
         all_cols = self.get_columns(experiments)
@@ -195,7 +205,8 @@ class PEtabConverter:
             info = COPASI.CExperimentFileInfo(exp_set)
             info.setFileName(str(self.experimental_data_file))
             exp.setObjectName(cond)
-            exp.setFirstRow(1 if cur_exp['offset'] == 1 else cur_exp['offset'] + 1)
+            exp.setFirstRow(1 if cur_exp['offset'] == 1
+                            else cur_exp['offset'] + 1)
             cols = all_cols
             times = petab.experiment_time_points[cur_exp['condition']]
             exp.setLastRow(cur_exp['offset'] + len(times))
@@ -227,7 +238,8 @@ class PEtabConverter:
                     role = COPASI.CExperiment.time
                 else:
                     if all_cols[i] in cur_exp['columns']:
-                        obj = dm.findObjectByDisplayName('Values[observable_' + cols[i] + ']')
+                        obj = dm.findObjectByDisplayName(
+                            'Values[observable_' + cols[i] + ']')
                         if obj is not None:
                             cn = obj.getValueReference().getCN()
                             role = COPASI.CExperiment.dependent
@@ -239,7 +251,8 @@ class PEtabConverter:
 
             for i in range(num_conditions):
                 role = COPASI.CExperiment.ignore
-                obj = dm.findObjectByDisplayName('Values[' + cond_cols[i] + ']')
+                obj = dm.findObjectByDisplayName(
+                    'Values[' + cond_cols[i] + ']')
                 if obj is not None:
                     cn = obj.getInitialValueReference().getCN()
                     role = COPASI.CExperiment.independent
@@ -263,9 +276,12 @@ class PEtabConverter:
             cond = data.simulationConditionId[i]
             time = data.time[i]
             value = data.measurement[i]
-            params = data.observableParameters[i] if 'observableParameters' in data else None
-            transformation = data.observableTransformation[i] if 'observableTransformation' in data else 'lin'
-            condition = data.simulationConditionId[i] if 'simulationConditionId' in data else None
+            params = data.observableParameters[i] \
+                if 'observableParameters' in data else None
+            transformation = data.observableTransformation[i] \
+                if 'observableTransformation' in data else 'lin'
+            condition = data.simulationConditionId[i] \
+                if 'simulationConditionId' in data else None
 
             if cond not in experiments.keys():
                 experiments[cond] = {'name': cond,
@@ -280,7 +296,8 @@ class PEtabConverter:
                 # add transformations only once
                 self.add_transformation_for_params(obs, params)
 
-            cur_exp['columns'][obs].append((time, value, params, transformation))
+            cur_exp['columns'][obs].\
+                append((time, value, params, transformation))
 
         for cond in experiments:
             cur_exp = experiments[cond]
@@ -346,9 +363,11 @@ class PEtabConverter:
                 upper = float(current['upperBound'])
                 value = float(current['nominalValue'])
 
-            item = problem.addOptItem(cn)  # if we found it, we can get its internal identifier and create the item
-            item.setLowerBound(COPASI.CCommonName(str(lower)))  # set the lower
-            item.setUpperBound(COPASI.CCommonName(str(upper)))  # and upper bound
+            # if we found it, we can get its internal identifier and create
+            # the item
+            item = problem.addOptItem(cn)
+            item.setLowerBound(COPASI.CCommonName(str(lower)))
+            item.setUpperBound(COPASI.CCommonName(str(upper)))
             item.setStartValue(value)  # as well as the initial value
 
     def convert_petab_fromdir(self, petab_dir, model_name, out_dir, out_name):
@@ -373,14 +392,15 @@ class PEtabConverter:
         COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
         COPASI.COutputAssistant.createDefaultOutput(910, task, dm)
         dm.saveModel(output_model, True)
-        dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')), True, False, True, False, True)
+        dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')),
+                                True, False, True, False, True)
 
     def convert(self):
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
 
     def add_transformation_for_params(self, obs, params):
         # type: (str, str) -> None
-        """ some model requires us to add assignment rules to observable parameters"""
+        """ add assignment rules to observable parameters """
         count = 0
 
         if np.isreal(params):
@@ -396,8 +416,10 @@ class PEtabConverter:
                 self.add_value_transform(param, count, obs)
                 continue
 
-            obs_param = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(count, obs))
-            if obs_param is None or not isinstance(obs_param, COPASI.CModelValue):
+            obs_param = dm.findObjectByDisplayName(
+                'Values[observableParameter{0}_{1}]'.format(count, obs))
+            if obs_param is None or \
+                    not isinstance(obs_param, COPASI.CModelValue):
                 continue
             obs_param.setStatus(COPASI.CModelValue.Status_ASSIGNMENT)
             obs_param.setExpression('<{0}>'.format(obj.getCN()))
@@ -405,8 +427,10 @@ class PEtabConverter:
     @staticmethod
     def add_value_transform(value, index, obs):
         if np.isreal(value):
-            obs_param = dm.findObjectByDisplayName('Values[observableParameter{0}_{1}]'.format(index, obs))
-            if obs_param is None or not isinstance(obs_param, COPASI.CModelValue):
+            obs_param = dm.findObjectByDisplayName(
+                'Values[observableParameter{0}_{1}]'.format(index, obs))
+            if obs_param is None or \
+                    not isinstance(obs_param, COPASI.CModelValue):
                 return
             obs_param.setValue(value)
 
@@ -420,8 +444,9 @@ if __name__ == "__main__":
         model_name = sys.argv[2]
         out_dir = sys.argv[3]
     else:
-        petab_dir = r'E:\Development\Benchmark-Models\hackathon_contributions_new_data_format\Becker_Science2010'
-        model_name = r'Becker_Science2010__BaF3_Exp'
+        petab_dir = './benchmarks/hackathon_contributions_new_data_format/' \
+                    'Becker_Science2010'
+        model_name = 'Becker_Science2010__BaF3_Exp'
         out_dir = '.'
 
     converter = PEtabConverter(petab_dir, model_name, out_dir)

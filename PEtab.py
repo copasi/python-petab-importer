@@ -1,10 +1,10 @@
 import os
 import sys
 import traceback
-from PyQt5.QtWidgets import QMainWindow, QWidget, QDesktopWidget, QApplication, QFileDialog, QDirModel, QMessageBox, \
-    QListWidget
+from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QApplication, \
+    QFileDialog, QMessageBox
 from PyQt5 import uic
-from PyQt5.QtCore import qDebug, QUrl, QSettings, Qt
+from PyQt5.QtCore import QUrl, QSettings, Qt
 from PyQt5.QtGui import QDesktopServices
 
 import convert_petab
@@ -34,7 +34,8 @@ class PETabGui(QMainWindow):
     def load_settings(self):
         settings = QSettings("petab.ini", QSettings.IniFormat)
 
-        self.dir = settings.value("dir", r'./benchmarks/hackathon_contributions_new_data_format')
+        benchmark_dir = './benchmarks/hackathon_contributions_new_data_format'
+        self.dir = settings.value("dir", benchmark_dir)
         self.model_dir = settings.value("model_dir", r'Becker_Science2010')
         self.model = settings.value("model", 'Becker_Science2010__BaF3_Exp')
         self.out_dir = settings.value("out_dir", './out')
@@ -54,7 +55,9 @@ class PETabGui(QMainWindow):
         QDesktopServices.openUrl(url)
 
     def slotOpenInCOPASI(self):
-        QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.join(self.out_dir, self.model + '.cps')))
+        QDesktopServices.openUrl(
+            QUrl.fromLocalFile(
+                os.path.join(self.out_dir, self.model + '.cps')))
 
     def slotSetBenchmarkDir(self, dir):
         if not os.path.exists(dir):
@@ -65,7 +68,8 @@ class PETabGui(QMainWindow):
 
     def slotSetModelDir(self, model_dir):
         self.model_dir = model_dir
-        items = self.ui.lstModelDirs.findItems(self.model_dir, Qt.MatchFixedString)
+        items = self.ui.lstModelDirs.findItems(self.model_dir,
+                                               Qt.MatchFixedString)
         if len(items) > 0:
             self.ui.lstModelDirs.setCurrentItem(items[0])
         self.load_models()
@@ -82,7 +86,9 @@ class PETabGui(QMainWindow):
         self.ui.txtOutDir.setText(out_dir)
 
     def slotBrowseBenchmarkDir(self):
-        result = QFileDialog.getExistingDirectory(self, 'Select Benchmark dir', self.dir)
+        result = QFileDialog.getExistingDirectory(self,
+                                                  'Select Benchmark dir',
+                                                  self.dir)
         if result is None:
             return
         self.slotSetBenchmarkDir(result)
@@ -106,11 +112,12 @@ class PETabGui(QMainWindow):
 
     def load_models(self):
         self.ui.lstModels.clear()
-        if self.model_dir is None or not os.path.exists(os.path.join(self.dir, self.model_dir)):
+        full_dir = os.path.join(self.dir, self.model_dir)
+        if self.model_dir is None or not os.path.exists(full_dir):
             self.ui.wdgDetail.setEnabled(False)
             return
         self.ui.wdgDetail.setEnabled(True)
-        for (dirpath, dirnames, filenames) in os.walk(os.path.join(self.dir, self.model_dir)):
+        for (dirpath, dirnames, filenames) in os.walk(full_dir):
             for file in filenames:
                 if file.startswith('model_'):
                     file = file[6:]
@@ -127,7 +134,9 @@ class PETabGui(QMainWindow):
         self.slotSetModel(selected.text())
 
     def slotBrowseOutputDir(self):
-        result = QFileDialog.getExistingDirectory(self, 'Select Output Folder', self.out_dir)
+        result = QFileDialog.getExistingDirectory(self,
+                                                  'Select Output Folder',
+                                                  self.out_dir)
         if result is None:
             return
         self.slotSetOutputDir(result)
@@ -140,13 +149,15 @@ class PETabGui(QMainWindow):
             self.out_dir = self.ui.txtOutDir.text()
             if not os.path.exists(self.out_dir):
                 os.makedirs(self.out_dir, exist_ok=True)
-            converter = convert_petab.PEtabConverter(os.path.join(self.dir, self.model_dir), self.model, self.out_dir, self.model)
+            full_dir = os.path.join(self.dir, self.model_dir)
+            converter = convert_petab.PEtabConverter(full_dir, self.model,
+                                                     self.out_dir, self.model)
             converter.convert()
             if converter.experimental_data_file is not None:
                 with open(converter.experimental_data_file, 'r') as data:
                     text = data.read()
                     self.ui.txtData.document().setPlainText(text)
-        except:
+        except BaseException:
             msg = traceback.format_exc()
             QMessageBox.critical(self, 'Error converting', msg)
         self.ui.cmdConvert.setEnabled(True)
