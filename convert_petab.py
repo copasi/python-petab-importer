@@ -240,7 +240,10 @@ class PEtabConverter:
                 else:
                     if all_cols[i] in cur_exp['columns']:
                         obj = dm.findObjectByDisplayName(
-                            'Values[observable_' + cols[i] + ']')
+                            'Values[observable_' + all_cols[i] + ']')
+                        if obj is None:
+                            obj = dm.findObjectByDisplayName(
+                                'Values[' + all_cols[i] + ']')
                         if obj is not None:
                             cn = obj.getValueReference().getCN()
                             role = COPASI.CExperiment.dependent
