@@ -1,6 +1,7 @@
 import COPASI
 import sys
 import os
+import math
 import pandas as pd
 import numpy as np
 
@@ -283,6 +284,11 @@ class PEtabConverter:
             condition = data.simulationConditionId[i] \
                 if 'simulationConditionId' in data else None
 
+            if transformation == 'log10':
+                value = math.pow(10.0, float(value))
+            elif transformation == 'log':
+                value = math.exp(float(value))
+
             if cond not in experiments.keys():
                 experiments[cond] = {'name': cond,
                                      'columns': {},
@@ -344,17 +350,11 @@ class PEtabConverter:
 
             obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
 
-            if obj is None:
-                continue
-
-            cn = obj.getInitialValueReference().getCN()
-
             if current.parameterScale == 'log10':
                 lower = pow(10.0, float(current['lowerBound']))
                 upper = pow(10.0, float(current['upperBound']))
                 value = pow(10.0, float(current['nominalValue']))
             elif current.parameterScale == 'log':
-                import math
                 lower = math.exp(float(current['lowerBound']))
                 upper = math.exp(float(current['upperBound']))
                 value = math.exp(float(current['nominalValue']))
@@ -362,6 +362,18 @@ class PEtabConverter:
                 lower = float(current['lowerBound'])
                 upper = float(current['upperBound'])
                 value = float(current['nominalValue'])
+
+            if obj is None:
+                # if there is no such parameter in the model, we might have 
+                # to create it first
+                model = dm.getModel()
+                obj = model.createModelValue(name, value)
+                #continue
+
+            # update the initial value
+            obj.setInitialValue(value)
+
+            cn = obj.getInitialValueReference().getCN()
 
             # if we found it, we can get its internal identifier and create
             # the item
@@ -413,8 +425,10 @@ class PEtabConverter:
             obj = dm.findObjectByDisplayName('Values[' + param + ']')
             if obj is None:
                 # it could be a value
-                self.add_value_transform(param, count, obs)
-                continue
+                if self.add_value_transform(param, count, obs):
+                    continue
+                # otherwise add it as model value and try mapping
+                obj = dm.getModel().createModelValue(param, 1.0)
 
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(count, obs))
@@ -431,8 +445,10 @@ class PEtabConverter:
                 'Values[observableParameter{0}_{1}]'.format(index, obs))
             if obs_param is None or \
                     not isinstance(obs_param, COPASI.CModelValue):
-                return
+                return False
             obs_param.setValue(value)
+            return True
+        return False
 
 
 if __name__ == "__main__":
