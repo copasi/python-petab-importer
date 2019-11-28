@@ -351,6 +351,10 @@ class PEtabConverter:
         for i in range(parameters.shape[0]):
             current = parameters.iloc[i]
             name = current.parameterId
+            estimate = 1 if 'estimate' not in current else current['estimate']
+
+            if estimate == 0:
+                continue
 
             obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
 
@@ -382,7 +386,11 @@ class PEtabConverter:
             # if we found it, we can get its internal identifier and create
             # the item
             item = problem.addOptItem(cn)
+            if np.isnan(lower):
+                lower = math.pow(10, -6)
             item.setLowerBound(COPASI.CCommonName(str(lower)))
+            if np.isnan(upper):
+                upper = math.pow(10, 6)
             item.setUpperBound(COPASI.CCommonName(str(upper)))
             item.setStartValue(value)  # as well as the initial value
 
