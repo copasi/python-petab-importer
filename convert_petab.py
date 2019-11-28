@@ -4,6 +4,7 @@ import os
 import math
 import pandas as pd
 import numpy as np
+import logging
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
@@ -109,6 +110,7 @@ class PEtabConverter:
         self.out_dir = out_dir
         self.out_name = out_name
         self.transform_data = False
+        self.ignore_independent = {}
         if out_name is None:
             self.out_name = model_name
         self.experimental_data_file = None
@@ -182,7 +184,10 @@ class PEtabConverter:
                             try:
                                 output.write(str(float(conditions[col])))
                             except ValueError:
-                                output.write(str(conditions[col]))
+                                # output.write(str(conditions[col]))
+                                if not current_exp['condition'] in self.ignore_independent:
+                                    self.ignore_independent[current_exp['condition']] = []
+                                self.ignore_independent[current_exp['condition']].append(conditions[col].name)
                     output.write('\n')
                     line += 1
 
@@ -258,6 +263,11 @@ class PEtabConverter:
                 role = COPASI.CExperiment.ignore
                 obj = dm.findObjectByDisplayName(
                     'Values[' + cond_cols[i] + ']')
+
+                if cond in self.ignore_independent and cond_cols[i] in self.ignore_independent[cond]:
+                    # ignore mapping to parameter / fit item
+                    obj = None
+
                 if obj is not None:
                     cn = obj.getInitialValueReference().getCN()
                     role = COPASI.CExperiment.independent
@@ -376,6 +386,7 @@ class PEtabConverter:
                 # to create it first
                 model = dm.getModel()
                 obj = model.createModelValue(name, value)
+                logging.warning('created model value {0}'.format(name))
                 #continue
 
             # update the initial value
@@ -441,6 +452,7 @@ class PEtabConverter:
                     continue
                 # otherwise add it as model value and try mapping
                 obj = dm.getModel().createModelValue(param, 1.0)
+                logging.warning('created model value {0}'.format(param))
 
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(count, obs))
