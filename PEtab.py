@@ -152,6 +152,7 @@ class PETabGui(QMainWindow):
             full_dir = os.path.join(self.dir, self.model_dir)
             converter = convert_petab.PEtabConverter(full_dir, self.model,
                                                      self.out_dir, self.model)
+            converter.transform_data = self.ui.chkTransformData.isChecked()
             converter.convert()
             if converter.experimental_data_file is not None:
                 with open(converter.experimental_data_file, 'r') as data:

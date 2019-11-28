@@ -79,7 +79,7 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="tabGeneral" native="true">
+       <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
          <string>General</string>
         </attribute>
@@ -89,6 +89,16 @@
          </item>
          <item row="1" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QCheckBox" name="chkTransformData">
+             <property name="statusTip">
+              <string>If checked, measurement data is transformed in case 'log' or 'log10' is defined in the observableTransformation column</string>
+             </property>
+             <property name="text">
+              <string>Transform Measurement Data</string>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QPushButton" name="cmdConvert">
              <property name="text">
@@ -148,7 +158,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>17</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

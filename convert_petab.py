@@ -108,6 +108,7 @@ class PEtabConverter:
         self.experiments = {}
         self.out_dir = out_dir
         self.out_name = out_name
+        self.transform_data = False
         if out_name is None:
             self.out_name = model_name
         self.experimental_data_file = None
@@ -287,9 +288,9 @@ class PEtabConverter:
             condition = data.simulationConditionId[i] \
                 if 'simulationConditionId' in data else None
 
-            if transformation == 'log10':
+            if self.transform_data and transformation == 'log10':
                 value = math.pow(10.0, float(value))
-            elif transformation == 'log':
+            elif self.transform_data and transformation == 'log':
                 value = math.exp(float(value))
 
             if cond not in experiments.keys():
