@@ -111,6 +111,7 @@ class PEtabConverter:
         self.out_name = out_name
         self.transform_data = False
         self.ignore_independent = {}
+        self.experiment_to_key = {}
         if out_name is None:
             self.out_name = model_name
         self.experimental_data_file = None
@@ -186,8 +187,9 @@ class PEtabConverter:
                             except ValueError:
                                 # output.write(str(conditions[col]))
                                 if not current_exp['condition'] in self.ignore_independent:
-                                    self.ignore_independent[current_exp['condition']] = []
-                                self.ignore_independent[current_exp['condition']].append(conditions[col].name)
+                                    self.ignore_independent[current_exp['condition']] = {}
+                                self.ignore_independent[current_exp['condition']][col] =\
+                                    conditions[col].values[0]
                     output.write('\n')
                     line += 1
 
@@ -212,6 +214,7 @@ class PEtabConverter:
             info = COPASI.CExperimentFileInfo(exp_set)
             info.setFileName(str(self.experimental_data_file))
             exp.setObjectName(cond)
+            self.experiment_to_key[cond] = exp.getKey()
             exp.setFirstRow(1 if cur_exp['offset'] == 1
                             else cur_exp['offset'] + 1)
             cols = all_cols
@@ -353,8 +356,7 @@ class PEtabConverter:
                 pass
         return result
 
-    @staticmethod
-    def add_fit_items(parameters):
+    def add_fit_items(self, parameters):
         task = dm.getTask('Parameter Estimation')
         problem = task.getProblem()
 
@@ -386,8 +388,7 @@ class PEtabConverter:
                 # to create it first
                 model = dm.getModel()
                 obj = model.createModelValue(name, value)
-                logging.warning('created model value {0}'.format(name))
-                #continue
+                logging.debug('created model value {0} for fit item'.format(name))
 
             # update the initial value
             obj.setInitialValue(value)
@@ -404,6 +405,42 @@ class PEtabConverter:
                 upper = math.pow(10, 6)
             item.setUpperBound(COPASI.CCommonName(str(upper)))
             item.setStartValue(value)  # as well as the initial value
+
+        # create experiment specific fit items
+        for condition in self.ignore_independent:
+            for name in self.ignore_independent[condition]:
+                parameterId = self.ignore_independent[condition][name]
+                obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
+                if obj is None:
+                    logging.warning('No model value for {0} to create fit item for'.format(name))
+                    continue
+                current = parameters[parameters.parameterId == parameterId].iloc[0]
+                if current.parameterScale == 'log10':
+                    lower = pow(10.0, float(current['lowerBound']))
+                    upper = pow(10.0, float(current['upperBound']))
+                    value = pow(10.0, float(current['nominalValue']))
+                elif current.parameterScale == 'log':
+                    lower = math.exp(float(current['lowerBound']))
+                    upper = math.exp(float(current['upperBound']))
+                    value = math.exp(float(current['nominalValue']))
+                else:
+                    lower = float(current['lowerBound'])
+                    upper = float(current['upperBound'])
+                    value = float(current['nominalValue'])
+
+                cn = obj.getInitialValueReference().getCN()
+
+                # if we found it, we can get its internal identifier and create
+                # the item
+                item = problem.addFitItem(cn)
+                if np.isnan(lower):
+                    lower = math.pow(10, -6)
+                item.setLowerBound(COPASI.CCommonName(str(lower)))
+                if np.isnan(upper):
+                    upper = math.pow(10, 6)
+                item.setUpperBound(COPASI.CCommonName(str(upper)))
+                item.setStartValue(value)  # as well as the initial value
+                item.addExperiment(self.experiment_to_key[condition])
 
     def convert_petab_fromdir(self, petab_dir, model_name, out_dir, out_name):
         petab = PEtabProblem(petab_dir, model_name)
@@ -452,7 +489,7 @@ class PEtabConverter:
                     continue
                 # otherwise add it as model value and try mapping
                 obj = dm.getModel().createModelValue(param, 1.0)
-                logging.warning('created model value {0}'.format(param))
+                logging.debug('created model value {0} for transformation'.format(param))
 
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(count, obs))
