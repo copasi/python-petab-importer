@@ -112,6 +112,7 @@ class PETabGui(QMainWindow):
 
     def load_models(self):
         self.ui.lstModels.clear()
+        self.model = None
         full_dir = os.path.join(self.dir, self.model_dir)
         if self.model_dir is None or not os.path.exists(full_dir):
             self.ui.wdgDetail.setEnabled(False)
@@ -124,8 +125,9 @@ class PETabGui(QMainWindow):
                 if file.endswith('.xml'):
                     file = file[:-4]
                     self.ui.lstModels.addItem(file)
-            if self.model is not None:
-                self.slotSetModel(self.model)
+                    self.model = file
+        if self.model is not None:
+            self.slotSetModel(self.model)
 
     def slotModelSelected(self):
         selected = self.ui.lstModels.currentItem()
