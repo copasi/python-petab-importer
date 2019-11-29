@@ -328,11 +328,17 @@ class PEtabConverter:
             cur_exp['time'] = times
             for obs in cur_exp['columns']:
                 cur_obs = cur_exp['columns'][obs]
+                cur_obs = self.sort_tuples(cur_obs)
                 padded_obs = self.pad_data(times, cur_obs)
                 experiments[cond]['columns'][obs] = padded_obs
 
         # pad columns
         return experiments
+
+    @staticmethod
+    def sort_tuples(data):
+        data.sort(key=lambda tup: tup[0])
+        return data
 
     @staticmethod
     def pad_data(times, data):
