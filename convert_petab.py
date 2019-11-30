@@ -371,11 +371,6 @@ class PEtabConverter:
             name = current.parameterId
             estimate = 1 if 'estimate' not in current else current['estimate']
 
-            if estimate == 0:
-                continue
-
-            obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
-
             if current.parameterScale == 'log10':
                 lower = pow(10.0, float(current['lowerBound']))
                 upper = pow(10.0, float(current['upperBound']))
@@ -388,6 +383,13 @@ class PEtabConverter:
                 lower = float(current['lowerBound'])
                 upper = float(current['upperBound'])
                 value = float(current['nominalValue'])
+
+            obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
+            if estimate == 0:
+                # update the initial value but don't create an item for it
+                if obj is not None:
+                    obj.setInitialValue(value)
+                continue
 
             if obj is None:
                 # if there is no such parameter in the model, we might have 
@@ -418,13 +420,16 @@ class PEtabConverter:
                 parameterId = self.ignore_independent[condition][name]
                 obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
                 if obj is None:
-                    logging.warning('No model value for {0} to create fit item for'.format(name))
+                    logging.warning(
+                        'No model value for {0} to create fit item for'.
+                            format(name))
                     continue
 
                 current = parameters[parameters.parameterId == parameterId]
                 if current.shape[0] == 0:
                     # this should not be happening
-                    logging.warning('No entry for {0} in parameter table'.format(parameterId))
+                    logging.warning('No entry for {0} in parameter table'.
+                                    format(parameterId))
                     continue
                 current = current.iloc[0]
                 if current.parameterScale == 'log10':
@@ -501,7 +506,8 @@ class PEtabConverter:
                     continue
                 # otherwise add it as model value and try mapping
                 obj = dm.getModel().createModelValue(param, 1.0)
-                logging.debug('created model value {0} for transformation'.format(param))
+                logging.debug('created model value {0} for transformation'.
+                              format(param))
 
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(count, obs))
