@@ -38,6 +38,7 @@ def get_all_models(current_dir):
                 if name.startswith('model_'):
                     name = name[6:]
                 models.append(name)
+        break
     models = sorted(models)
     return models
 

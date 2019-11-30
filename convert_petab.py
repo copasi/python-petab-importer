@@ -465,8 +465,12 @@ class PEtabConverter:
 
     def generate_copasi_file(self, petab, out_dir, out_name):
         output_model = str(os.path.join(out_dir, out_name + '.cps'))
-        if not dm.importSBML(petab.model_file):
+        try:
+            if not dm.importSBML(petab.model_file):
+                raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
+        except COPASI.CCopasiException:
             raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
+
         dm.saveModel(output_model, True)
         self.experimental_data_file = os.path.join(out_dir, out_name + '.txt')
         self.generate_copasi_data(petab)

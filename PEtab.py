@@ -106,7 +106,7 @@ class PETabGui(QMainWindow):
         if self.dir is None or not os.path.exists(self.dir):
             return
         for (dirpath, dirnames, filenames) in os.walk(self.dir):
-            self.ui.lstModelDirs.addItems(dirnames)
+            self.ui.lstModelDirs.addItems(sorted(dirnames))
         if self.model_dir is not None:
             self.slotSetModelDir(self.model_dir)
 
@@ -119,13 +119,14 @@ class PETabGui(QMainWindow):
             return
         self.ui.wdgDetail.setEnabled(True)
         for (dirpath, dirnames, filenames) in os.walk(full_dir):
-            for file in filenames:
+            for file in sorted(filenames):
                 if file.startswith('model_'):
                     file = file[6:]
                 if file.endswith('.xml'):
                     file = file[:-4]
                     self.ui.lstModels.addItem(file)
                     self.model = file
+            break  # skip other dirs
         if self.model is not None:
             self.slotSetModel(self.model)
 
