@@ -420,7 +420,13 @@ class PEtabConverter:
                 if obj is None:
                     logging.warning('No model value for {0} to create fit item for'.format(name))
                     continue
-                current = parameters[parameters.parameterId == parameterId].iloc[0]
+
+                current = parameters[parameters.parameterId == parameterId]
+                if current.shape[0] == 0:
+                    # this should not be happening
+                    logging.warning('No entry for {0} in parameter table'.format(parameterId))
+                    continue
+                current = current.iloc[0]
                 if current.parameterScale == 'log10':
                     lower = pow(10.0, float(current['lowerBound']))
                     upper = pow(10.0, float(current['upperBound']))
