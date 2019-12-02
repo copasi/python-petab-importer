@@ -107,6 +107,7 @@ class PETabGui(QMainWindow):
             return
         for (dirpath, dirnames, filenames) in os.walk(self.dir):
             self.ui.lstModelDirs.addItems(sorted(dirnames))
+            break  # only from top level
         if self.model_dir is not None:
             self.slotSetModelDir(self.model_dir)
 
