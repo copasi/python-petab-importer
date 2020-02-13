@@ -21,6 +21,7 @@ class PEtabProblem:
         self.parameter_file = self._get_parameter_file()
         self.simulation_file = self._get_simulation_file()
         self.model_file = self._get_model_file()
+        self.observable_file = self._get_observable_file()
 
         self.measurement_data = pd.read_csv(self.measurement_file, sep='\t')
         self.experiment_time_points = \
@@ -31,6 +32,8 @@ class PEtabProblem:
         self.parameter_data = pd.read_csv(self.parameter_file, sep='\t')
         self.simulation_data = None if self.simulation_file is None \
             else pd.read_csv(self.simulation_file, sep='\t')
+        self.observable_data = None if self.observable_file is None \
+            else pd.read_csv(self.observable_file, sep='\t')
 
     @staticmethod
     def _get_time_points(data_set):
@@ -96,6 +99,12 @@ class PEtabProblem:
     def _get_simulation_file(self):
         try:
             return self._get_file_from_folder('simulationData', 'tsv')
+        except ValueError:
+            return None
+
+    def _get_observable_file(self):
+        try:
+            return self._get_file_from_folder('observables', 'tsv')
         except ValueError:
             return None
 
@@ -301,10 +310,10 @@ class PEtabConverter:
             condition = data.simulationConditionId[i] \
                 if 'simulationConditionId' in data else None
 
-            if self.transform_data and transformation == 'log10':
-                value = math.pow(10.0, float(value))
-            elif self.transform_data and transformation == 'log':
-                value = math.exp(float(value))
+            # if self.transform_data and transformation == 'log10':
+            #     value = math.pow(10.0, float(value))
+            # elif self.transform_data and transformation == 'log':
+            #     value = math.exp(float(value))
 
             if cond not in experiments.keys():
                 experiments[cond] = {'name': cond,
@@ -371,18 +380,18 @@ class PEtabConverter:
             name = current.parameterId
             estimate = 1 if 'estimate' not in current else current['estimate']
 
-            if current.parameterScale == 'log10':
-                lower = pow(10.0, float(current['lowerBound']))
-                upper = pow(10.0, float(current['upperBound']))
-                value = pow(10.0, float(current['nominalValue']))
-            elif current.parameterScale == 'log':
-                lower = math.exp(float(current['lowerBound']))
-                upper = math.exp(float(current['upperBound']))
-                value = math.exp(float(current['nominalValue']))
-            else:
-                lower = float(current['lowerBound'])
-                upper = float(current['upperBound'])
-                value = float(current['nominalValue'])
+            # if current.parameterScale == 'log10':
+            #     lower = pow(10.0, float(current['lowerBound']))
+            #     upper = pow(10.0, float(current['upperBound']))
+            #     value = pow(10.0, float(current['nominalValue']))
+            # elif current.parameterScale == 'log':
+            #     lower = math.exp(float(current['lowerBound']))
+            #     upper = math.exp(float(current['upperBound']))
+            #     value = math.exp(float(current['nominalValue']))
+            # else:
+            lower = float(current['lowerBound'])
+            upper = float(current['upperBound'])
+            value = float(current['nominalValue'])
 
             obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
             if estimate == 0:
@@ -432,18 +441,18 @@ class PEtabConverter:
                                     format(parameterId))
                     continue
                 current = current.iloc[0]
-                if current.parameterScale == 'log10':
-                    lower = pow(10.0, float(current['lowerBound']))
-                    upper = pow(10.0, float(current['upperBound']))
-                    value = pow(10.0, float(current['nominalValue']))
-                elif current.parameterScale == 'log':
-                    lower = math.exp(float(current['lowerBound']))
-                    upper = math.exp(float(current['upperBound']))
-                    value = math.exp(float(current['nominalValue']))
-                else:
-                    lower = float(current['lowerBound'])
-                    upper = float(current['upperBound'])
-                    value = float(current['nominalValue'])
+                # if current.parameterScale == 'log10':
+                #     lower = pow(10.0, float(current['lowerBound']))
+                #     upper = pow(10.0, float(current['upperBound']))
+                #     value = pow(10.0, float(current['nominalValue']))
+                # elif current.parameterScale == 'log':
+                #     lower = math.exp(float(current['lowerBound']))
+                #     upper = math.exp(float(current['upperBound']))
+                #     value = math.exp(float(current['nominalValue']))
+                # else:
+                lower = float(current['lowerBound'])
+                upper = float(current['upperBound'])
+                value = float(current['nominalValue'])
 
                 cn = obj.getInitialValueReference().getCN()
 
