@@ -52,14 +52,25 @@ class PEtabProblem:
             id = current.observableId
             name = id
 
+            # if we have one already, don't add again
+            # something ought to be wrong with the table here
+            if model.getParameter(id) is not None:
+                continue
+
             formula = current.observableFormula
+            if not isinstance(formula, str):
+                continue
 
             math = libsbml.parseL3Formula(formula)
+            if math is None:
+                continue
+
             self.add_missing_params(model, math)
 
             obs = model.createParameter()
             obs.setId(id)
             obs.setName(name)
+            obs.setValue(0)
 
             assignment = model.createAssignmentRule()
             assignment.setVariable(current.observableId)
@@ -170,6 +181,11 @@ class PEtabConverter:
         if out_name is None:
             self.out_name = model_name
         self.experimental_data_file = None
+
+        self.show_progress_of_fit = True
+        self.show_result = True
+        self.show_result_per_experiment = False
+        self.show_result_per_dependent = False
 
     @staticmethod
     def get_columns(experiments):
@@ -538,8 +554,15 @@ class PEtabConverter:
         task = dm.getTask('Parameter Estimation')
         task.setMethodType(COPASI.CTaskEnum.Method_Statistics)
         COPASI.COutputAssistant.getListOfDefaultOutputDescriptions(task)
-        COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
-        COPASI.COutputAssistant.createDefaultOutput(910, task, dm)
+        if self.show_result:
+            COPASI.COutputAssistant.createDefaultOutput(910, task, dm)
+        if self.show_result_per_experiment:
+            COPASI.COutputAssistant.createDefaultOutput(911, task, dm)
+        if self.show_result_per_dependent:
+            COPASI.COutputAssistant.createDefaultOutput(912, task, dm)
+        if self.show_progress_of_fit:
+            COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
+
         dm.saveModel(output_model, True)
         dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')),
                                 True, False, True, False, True)
