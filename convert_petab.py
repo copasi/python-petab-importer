@@ -50,6 +50,11 @@ class PEtabProblem:
         for i in range(observable_data.shape[0]):
             current = observable_data.iloc[i]
             id = current.observableId
+
+            # ignore invalid ids
+            if not libsbml.SyntaxChecker_isValidSBMLSId(id):
+                continue
+
             name = id
 
             # if we have one already, don't add again
