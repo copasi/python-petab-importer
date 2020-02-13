@@ -5,6 +5,7 @@ import math
 import pandas as pd
 import numpy as np
 import logging
+import libsbml
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
@@ -34,6 +35,38 @@ class PEtabProblem:
             else pd.read_csv(self.simulation_file, sep='\t')
         self.observable_data = None if self.observable_file is None \
             else pd.read_csv(self.observable_file, sep='\t')
+
+        self.transformed_sbml = None
+
+        self.transform_model(self.observable_data)
+
+    def transform_model(self, observable_data):
+        if observable_data is None:
+            return
+
+        doc = libsbml.readSBMLFromFile(self.model_file)
+        model = doc.getModel()
+
+        for i in range(observable_data.shape[0]):
+            current = observable_data.iloc[i]
+            id = current.observableId
+            name = id
+
+            formula = current.observableFormula
+
+            math = libsbml.parseL3Formula(formula)
+            self.add_missing_params(model, math)
+
+            obs = model.createParameter()
+            obs.setId(id)
+            obs.setName(name)
+
+            assignment = model.createAssignmentRule()
+            assignment.setVariable(current.observableId)
+            assignment.setMath(math)
+
+        self.transformed_sbml = libsbml.writeSBMLToString(doc)
+        doc = None
 
     @staticmethod
     def _get_time_points(data_set):
@@ -107,6 +140,19 @@ class PEtabProblem:
             return self._get_file_from_folder('observables', 'tsv')
         except ValueError:
             return None
+
+    def add_missing_params(self, model, math):
+        if model is None or math is None:
+            return
+        if math.getType() == libsbml.AST_NAME:
+            id = math.getName()
+            param = model.getElementBySId(id)
+            if param is None:
+                param = model.createParameter()
+                param.setId(id)
+                param.setValue(1)
+        for i in range(math.getNumChildren()):
+            self.add_missing_params(model, math.getChild(i))
 
 
 class PEtabConverter:
@@ -475,12 +521,13 @@ class PEtabConverter:
     def generate_copasi_file(self, petab, out_dir, out_name):
         output_model = str(os.path.join(out_dir, out_name + '.cps'))
         try:
-            if not dm.importSBML(petab.model_file):
+            if not dm.importSBMLFromString(petab.transformed_sbml):
                 raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
         except COPASI.CCopasiException:
             raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
 
         dm.saveModel(output_model, True)
+
         self.experimental_data_file = os.path.join(out_dir, out_name + '.txt')
         self.generate_copasi_data(petab)
         # now add fit items
