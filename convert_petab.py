@@ -42,6 +42,9 @@ class PEtabProblem:
 
     def transform_model(self, observable_data):
         if observable_data is None:
+            # just read file and leave it as is
+            with open(self.model_file, 'r') as sbml:
+                self.transformed_sbml = sbml.read()
             return
 
         doc = libsbml.readSBMLFromFile(self.model_file)

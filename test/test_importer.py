@@ -14,9 +14,9 @@ def test_copasi_version():
 def test_import():
     petab_dir = os.path.join(_PATH, 'benchmarks/'
                                     'hackathon_contributions_new_data_format/'
-                                    'Becker_Science2010')
+                                    'Bruno_JExpBio2016')
     assert os.path.exists(petab_dir)
-    model_name = 'Becker_Science2010__BaF3_Exp'
+    model_name = 'Bruno_JExpBio2016'
     out_dir = os.path.join(_PATH, 'out')
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
