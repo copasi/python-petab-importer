@@ -20,6 +20,10 @@ class PETabGui(QMainWindow):
         self.model_dir = None
         self.model = None
         self.out_dir = None
+        self.show_progress = True
+        self.show_result = True
+        self.show_result_per_experiment = False
+        self.show_result_per_dependent = False
 
         self.ui = uic.loadUi('petab.ui', self)
 
@@ -39,9 +43,17 @@ class PETabGui(QMainWindow):
         self.model_dir = settings.value("model_dir", r'Becker_Science2010')
         self.model = settings.value("model", 'Becker_Science2010__BaF3_Exp')
         self.out_dir = settings.value("out_dir", './out')
+        self.show_progress = settings.value("show_progress", True)
+        self.show_result = settings.value("show_result", True)
+        self.show_result_per_experiment = settings.value("show_result_per_experiment", False)
+        self.show_result_per_dependent = settings.value("show_result_per_dependent", False)
 
         self.ui.txtDir.setText(self.dir)
         self.ui.txtOutDir.setText(self.out_dir)
+        self.ui.chkPlotProgressOfFit.setChecked(self.show_progress)
+        self.ui.chkPlotResult.setChecked(self.show_result)
+        self.ui.chkPlotResultPerExperiment.setChecked(self.show_result_per_experiment)
+        self.ui.chkPlotResultPerDependent.setChecked(self.show_result_per_dependent)
 
     def save_settings(self):
         settings = QSettings("petab.ini", QSettings.IniFormat)
@@ -49,6 +61,10 @@ class PETabGui(QMainWindow):
         settings.setValue("model_dir", self.model_dir)
         settings.setValue("model", self.model)
         settings.setValue("out_dir", self.out_dir)
+        settings.setValue("show_progress", self.show_progress)
+        settings.setValue("show_result", self.show_result)
+        settings.setValue("show_result_per_experiment", self.show_result_per_experiment)
+        settings.setValue("show_result_per_dependent", self.show_result_per_dependent)
 
     def slotOpenModelDir(self):
         url = QUrl.fromLocalFile(os.path.join(self.dir, self.model_dir))
@@ -151,12 +167,21 @@ class PETabGui(QMainWindow):
         QApplication.processEvents()
         try:
             self.out_dir = self.ui.txtOutDir.text()
+            self.show_progress = self.ui.chkPlotProgressOfFit.isChecked()
+            self.show_result = self.ui.chkPlotResult.isChecked()
+            self.show_result_per_experiment = self.ui.chkPlotResultPerExperiment.isChecked()
+            self.show_result_per_dependent = self.ui.chkPlotResultPerDependent.isChecked()
+
             if not os.path.exists(self.out_dir):
                 os.makedirs(self.out_dir, exist_ok=True)
             full_dir = os.path.join(self.dir, self.model_dir)
             converter = convert_petab.PEtabConverter(full_dir, self.model,
                                                      self.out_dir, self.model)
             converter.transform_data = self.ui.chkTransformData.isChecked()
+            converter.show_progress_of_fit = self.show_progress
+            converter.show_result = self.show_result
+            converter.show_result_per_experiment = self.show_result_per_experiment
+            converter.show_result_per_dependent = self.show_result_per_dependent
             converter.convert()
             if converter.experimental_data_file is not None:
                 with open(converter.experimental_data_file, 'r') as data:

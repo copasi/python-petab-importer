@@ -135,7 +135,51 @@
            </item>
           </layout>
          </item>
-        </layout>
+         <item row="2" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QCheckBox" name="chkPlotProgressOfFit">
+             <property name="statusTip">
+              <string>If checked, Progress of Fit plot is added</string>
+             </property>
+             <property name="text">
+              <string>Progress</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkPlotResult">
+             <property name="statusTip">
+              <string>If checked, parameter estimation result plot is added</string>
+             </property>
+             <property name="text">
+              <string>Result</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkPlotResultPerExperiment">
+             <property name="statusTip">
+              <string>If checked, result plot per experiment is added</string>
+             </property>
+             <property name="text">
+              <string>Result per Experiment</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkPlotResultPerDependent">
+             <property name="statusTip">
+              <string>If checked, result plot per dependent is added</string>
+             </property>
+             <property name="text">
+              <string>Result per Dependent</string>
+             </property>
+            </widget>
+           </item>
+           </layout>
+          </item>
+         </layout>
        </widget>
        <widget class="QWidget" name="tabData">
         <attribute name="title">
