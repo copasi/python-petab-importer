@@ -56,6 +56,9 @@ class PEtabProblem:
 
             # ignore invalid ids
             if not libsbml.SyntaxChecker_isValidSBMLSId(id):
+                logging.warning(
+                    'Invalid observableId {0} in observable table'.
+                        format(id))
                 continue
 
             name = id
@@ -63,14 +66,23 @@ class PEtabProblem:
             # if we have one already, don't add again
             # something ought to be wrong with the table here
             if model.getParameter(id) is not None:
+                logging.warning(
+                    'observableId {0} appears multiple times'.
+                        format(id))
                 continue
 
             formula = current.observableFormula
             if not isinstance(formula, str):
+                logging.warning(
+                    'Invalid observableFormula for observableId {0}'.
+                        format(id))
                 continue
 
             math = libsbml.parseL3Formula(formula)
             if math is None:
+                logging.warning(
+                    'Invalid observableFormula for observableId {0}'.
+                        format(id))
                 continue
 
             self.add_missing_params(model, math)
