@@ -129,7 +129,8 @@ class PEtabProblem:
         # type: (pd.DataFrame) -> []
         result = []
         for col in data_set.columns:
-            if col == 'conditionId' or col == 'conditionName':
+            if col == 'conditionId' or col == 'conditionName' or \
+                    col == 'conditionID':
                 continue
             result.append(col)
         return result
