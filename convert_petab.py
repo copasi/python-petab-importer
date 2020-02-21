@@ -50,6 +50,9 @@ class PEtabProblem:
         doc = libsbml.readSBMLFromFile(self.model_file)
         model = doc.getModel()
 
+        all_ids = [x.getId() for x in doc.getListOfAllElements() if x.isSetId()]
+
+
         for i in range(observable_data.shape[0]):
             current = observable_data.iloc[i]
             id = current.observableId
@@ -65,9 +68,9 @@ class PEtabProblem:
 
             # if we have one already, don't add again
             # something ought to be wrong with the table here
-            if model.getParameter(id) is not None:
+            if id in all_ids:
                 logging.warning(
-                    'observableId {0} appears multiple times'.
+                    'observableId {0} appears already in the model'.
                         format(id))
                 continue
 
