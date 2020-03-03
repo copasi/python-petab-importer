@@ -13,31 +13,62 @@ print("using COPASI: %s" % COPASI.CVersion.VERSION.getVersion())
 
 
 class PEtabProblem:
-    def __init__(self, dirname, model_name):
+    def __init__(self, dirname=None, model_name=None, condition_file=None, measurement_file=None, parameter_file=None, simulation_file = None, model_file= None, observable_file = None,yaml_file = None):
         self.directory = dirname
         self.model_name = model_name
 
-        self.condition_file = self._get_condition_file()
-        self.measurement_file = self._get_measurement_file()
-        self.parameter_file = self._get_parameter_file()
-        self.simulation_file = self._get_simulation_file()
-        self.model_file = self._get_model_file()
-        self.observable_file = self._get_observable_file()
+        self.condition_file = condition_file
+        self.measurement_file = measurement_file
+        self.parameter_file = parameter_file
+        self.simulation_file = simulation_file
+        self.model_file = model_file
+        self.observable_file = observable_file
+        self.yaml_file = yaml_file
 
+        if self.yaml_file is None:
+            self.yaml_file = self._get_yaml_file()
+
+        if os.path.exists(self.yaml_file):
+            self._init_from_yaml()
+
+        if self.condition_file is None:
+            self.condition_file = self._get_condition_file()
+        if self.measurement_file is None:
+            self.measurement_file = self._get_measurement_file()
+        if self.parameter_file is None:
+            self.parameter_file = self._get_parameter_file()
+        if self.simulation_file is None:
+            self.simulation_file = self._get_simulation_file()
+        if self.model_file is None:
+            self.model_file = self._get_model_file()
+        if self.observable_file is None:
+            self.observable_file = self._get_observable_file()
+
+        self._init_from_files()
+
+    @staticmethod
+    def from_folder(dirname, model_name=None):
+        if model_name is None:
+            model_name = os.path.basename(dirname)
+        return PEtabProblem(dirname, model_name)
+
+    @staticmethod
+    def from_yaml(filename):
+        return PEtabProblem(yaml_file=filename)
+
+    def _init_from_files(self):
         self.measurement_data = pd.read_csv(self.measurement_file, sep='\t')
         self.experiment_time_points = \
             self._get_time_points(self.measurement_data)
         self.condition_data = pd.read_csv(self.condition_file, sep='\t')
-        self.independent_columns =\
+        self.independent_columns = \
             self._get_independent_columns(self.condition_data)
         self.parameter_data = pd.read_csv(self.parameter_file, sep='\t')
         self.simulation_data = None if self.simulation_file is None \
             else pd.read_csv(self.simulation_file, sep='\t')
         self.observable_data = None if self.observable_file is None \
             else pd.read_csv(self.observable_file, sep='\t')
-
         self.transformed_sbml = None
-
         self.transform_model(self.observable_data)
 
     def transform_model(self, observable_data):
@@ -51,7 +82,6 @@ class PEtabProblem:
         model = doc.getModel()
 
         all_ids = [x.getId() for x in doc.getListOfAllElements() if x.isSetId()]
-
 
         for i in range(observable_data.shape[0]):
             current = observable_data.iloc[i]
@@ -139,6 +169,12 @@ class PEtabProblem:
         return result
 
     def _get_file_from_folder(self, prefix, suffix):
+        if self.directory is None:
+            return None
+
+        if self.model_name is None:
+            return None
+
         file_name = str(os.path.join(self.directory,
                                      '{0}_{1}.{2}'.format(
                                          prefix, self.model_name, suffix)))
@@ -176,6 +212,14 @@ class PEtabProblem:
         except ValueError:
             return None
 
+    def _get_yaml_file(self):
+        if self.directory is None or self.model_name is None:
+            return None
+        filename = os.path.join(self.directory, self.model_name + '.yaml')
+        if os.path.exists(filename):
+            return filename
+        return None
+
     def add_missing_params(self, model, math):
         if model is None or math is None:
             return
@@ -188,6 +232,24 @@ class PEtabProblem:
                 param.setValue(1)
         for i in range(math.getNumChildren()):
             self.add_missing_params(model, math.getChild(i))
+
+    def _init_from_yaml(self):
+        import yaml
+        with open(self.yaml_file) as yaml_file:
+            data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+        self.directory = os.path.abspath(os.path.dirname(os.path.abspath(self.yaml_file)))
+        self.model_name = os.path.basename(self.directory)
+        self.parameter_file = self._get_file(data['parameter_file'])
+        problem = data['problems'][0]
+        self.condition_file = self._get_file(problem['condition_files'][0])
+        self.measurement_file = self._get_file(problem['measurement_files'][0])
+        self.observable_file = self._get_file(problem['observable_files'][0])
+        self.model_file = self._get_file(problem['sbml_files'][0])
+
+    def _get_file(self, filename):
+        if not os.path.exists(filename):
+            return os.path.join(self.directory, filename)
+        return filename
 
 
 class PEtabConverter:
