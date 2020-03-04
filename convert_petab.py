@@ -44,6 +44,7 @@ class PEtabProblem:
         if self.observable_file is None:
             self.observable_file = self._get_observable_file()
 
+        self.transformed_sbml = None
         self._init_from_files()
 
     @staticmethod
@@ -257,7 +258,11 @@ class PEtabConverter:
     def __init__(self, petab_dir, model_name, out_dir='.', out_name=None):
         self.petab_dir = petab_dir
         self.model_name = model_name
-        self.petab = PEtabProblem(petab_dir, model_name)
+        if model_name.endswith('.yaml'):
+            self.petab = PEtabProblem.from_yaml(os.path.join(petab_dir, model_name))
+            self.model_name = os.path.basename(model_name)
+        else:
+            self.petab = PEtabProblem(petab_dir, model_name)
         self.experiments = {}
         self.out_dir = out_dir
         self.out_name = out_name
@@ -660,6 +665,9 @@ class PEtabConverter:
         # type: (str, str) -> None
         """ add assignment rules to observable parameters """
         count = 0
+
+        if params is None:
+            return
 
         if np.isreal(params):
             if not not np.isnan(params):
