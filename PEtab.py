@@ -143,6 +143,9 @@ class PETabGui(QMainWindow):
                     file = file[:-4]
                     self.ui.lstModels.addItem(file)
                     self.model = file
+                if file.endswith('.yaml') and not '_solution' in file:
+                    self.ui.lstModels.addItem(file)
+                    self.model = file
             break  # skip other dirs
         if self.model is not None:
             self.slotSetModel(self.model)
