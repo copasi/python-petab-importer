@@ -28,8 +28,11 @@ class PEtabProblem:
         if self.yaml_file is None:
             self.yaml_file = self._get_yaml_file()
 
-        if os.path.exists(self.yaml_file):
+        if self.yaml_file is not None and os.path.exists(self.yaml_file):
             self._init_from_yaml()
+
+        if self.model_name is None and self.directory is not None:
+            self.model_name = os.path.basename(self.directory)
 
         if self.condition_file is None:
             self.condition_file = self._get_condition_file()
