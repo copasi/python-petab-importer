@@ -217,7 +217,12 @@ class PEtabProblem:
             return None
 
     def _get_yaml_file(self):
-        if self.directory is None or self.model_name is None:
+        if self.directory is None:
+            return None
+        if self.model_name is None:
+            for filename in os.listdir(self.directory):
+                if filename.endswith('.yaml'):
+                    return os.path.join(self.directory, filename)
             return None
         filename = os.path.join(self.directory, self.model_name + '.yaml')
         if os.path.exists(filename):
