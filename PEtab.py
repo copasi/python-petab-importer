@@ -24,6 +24,7 @@ class PETabGui(QMainWindow):
         self.show_result = True
         self.show_result_per_experiment = False
         self.show_result_per_dependent = False
+        self.write_report = False
 
         self.ui = uic.loadUi('petab.ui', self)
 
@@ -47,6 +48,7 @@ class PETabGui(QMainWindow):
         self.show_result = settings.value("show_result", True, type=bool)
         self.show_result_per_experiment = settings.value("show_result_per_experiment", False, type=bool)
         self.show_result_per_dependent = settings.value("show_result_per_dependent", False, type=bool)
+        self.write_report = settings.value("write_report", False, type=bool)
 
         self.ui.txtDir.setText(self.dir)
         self.ui.txtOutDir.setText(self.out_dir)
@@ -54,6 +56,7 @@ class PETabGui(QMainWindow):
         self.ui.chkPlotResult.setChecked(self.show_result)
         self.ui.chkPlotResultPerExperiment.setChecked(self.show_result_per_experiment)
         self.ui.chkPlotResultPerDependent.setChecked(self.show_result_per_dependent)
+        self.ui.chkWriteReport.setChecked(self.write_report)
 
     def save_settings(self):
         settings = QSettings("petab.ini", QSettings.IniFormat)
@@ -65,6 +68,7 @@ class PETabGui(QMainWindow):
         settings.setValue("show_result", self.show_result)
         settings.setValue("show_result_per_experiment", self.show_result_per_experiment)
         settings.setValue("show_result_per_dependent", self.show_result_per_dependent)
+        settings.setValue("write_report", self.write_report)
 
     def slotOpenModelDir(self):
         url = QUrl.fromLocalFile(os.path.join(self.dir, self.model_dir))
@@ -174,6 +178,7 @@ class PETabGui(QMainWindow):
             self.show_result = self.ui.chkPlotResult.isChecked()
             self.show_result_per_experiment = self.ui.chkPlotResultPerExperiment.isChecked()
             self.show_result_per_dependent = self.ui.chkPlotResultPerDependent.isChecked()
+            self.write_report = self.ui.chkWriteReport.isChecked()
 
             if not os.path.exists(self.out_dir):
                 os.makedirs(self.out_dir, exist_ok=True)
@@ -185,6 +190,7 @@ class PETabGui(QMainWindow):
             converter.show_result = self.show_result
             converter.show_result_per_experiment = self.show_result_per_experiment
             converter.show_result_per_dependent = self.show_result_per_dependent
+            converter.save_report = self.write_report
             converter.convert()
             if converter.experimental_data_file is not None:
                 with open(converter.experimental_data_file, 'r') as data:

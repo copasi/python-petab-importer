@@ -177,6 +177,16 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QCheckBox" name="chkWriteReport">
+             <property name="statusTip">
+              <string>If checked, a report file will be automatically written to NAME_report.txt</string>
+             </property>
+             <property name="text">
+              <string>Write Report</string>
+             </property>
+            </widget>
+           </item>
            </layout>
           </item>
          </layout>
