@@ -286,6 +286,9 @@ class PEtabConverter:
         self.show_result_per_experiment = False
         self.show_result_per_dependent = False
 
+        self.save_report = True
+
+
     @staticmethod
     def get_columns(experiments):
         # type: ({}) -> []
@@ -398,6 +401,12 @@ class PEtabConverter:
                 is_tc = False
             else:
                 exp.setExperimentType(COPASI.CTaskEnum.Task_timeCourse)
+                if cur_exp['preequilibrationCondition'] is not None:
+                    tc = dm.getTask('Time-Course')
+                    assert (isinstance(tc, COPASI.CTrajectoryTask))
+                    p = tc.getProblem()
+                    assert (isinstance(p, COPASI.CTrajectoryProblem))
+                    p.setStartInSteadyState(True)
             exp.setSeparator('\t')
             info.sync()
             if 'time' not in cols:
@@ -436,13 +445,18 @@ class PEtabConverter:
                 role = COPASI.CExperiment.ignore
                 obj = dm.findObjectByDisplayName(
                     'Values[' + cond_cols[i] + ']')
+                if obj is None:
+                    obj = dm.findObjectByDisplayName(cond_cols[i])
 
                 if cond in self.ignore_independent and cond_cols[i] in self.ignore_independent[cond]:
                     # ignore mapping to parameter / fit item
                     obj = None
 
                 if obj is not None:
-                    cn = obj.getInitialValueReference().getCN()
+                    if isinstance(obj, COPASI.CMetab):
+                        cn = obj.getInitialConcentrationReference().getCN()
+                    else:
+                        cn = obj.getInitialValueReference().getCN()
                     role = COPASI.CExperiment.independent
                     obj_map.setRole(num_cols + i, role)
                     obj_map.setObjectCN(num_cols + i, cn)
@@ -470,6 +484,8 @@ class PEtabConverter:
                 if 'observableTransformation' in data else 'lin'
             condition = data.simulationConditionId[i] \
                 if 'simulationConditionId' in data else None
+            preequilibrationCondition = data.preequilibrationConditionId[i] \
+                if 'preequilibrationConditionId' in data else None
 
             # if self.transform_data and transformation == 'log10':
             #     value = math.pow(10.0, float(value))
@@ -481,7 +497,8 @@ class PEtabConverter:
                                      'columns': {},
                                      'time': [],
                                      'offset': 0,
-                                     'condition': condition}
+                                     'condition': condition,
+                                     'preequilibrationCondition':preequilibrationCondition}
 
             cur_exp = experiments[cond]
             if obs not in cur_exp['columns'].keys():
@@ -590,6 +607,8 @@ class PEtabConverter:
                 parameterId = self.ignore_independent[condition][name]
                 obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
                 if obj is None:
+                    obj = dm.findObjectByDisplayName(name)
+                if obj is None:
                     logging.warning(
                         'No model value for {0} to create fit item for'.
                             format(name))
@@ -615,7 +634,10 @@ class PEtabConverter:
                 upper = float(current['upperBound'])
                 value = float(current['nominalValue'])
 
-                cn = obj.getInitialValueReference().getCN()
+                if isinstance(obj, COPASI.CMetab):
+                    cn = obj.getInitialConcentrationReference().getCN()
+                else:
+                    cn = obj.getInitialValueReference().getCN()
 
                 # if we found it, we can get its internal identifier and create
                 # the item
@@ -662,6 +684,13 @@ class PEtabConverter:
         if self.show_progress_of_fit:
             COPASI.COutputAssistant.createDefaultOutput(913, task, dm)
 
+        if self.save_report:
+            report = task.getReport()
+            assert (isinstance(report, COPASI.CReport))
+            report.setConfirmOverwrite(False)
+            report.setAppend(False)
+            report.setTarget(str(out_name + '_report.txt'))
+
         dm.saveModel(output_model, True)
         dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')),
                                 True, False, True, False, True)
@@ -704,6 +733,11 @@ class PEtabConverter:
 
     @staticmethod
     def add_value_transform(value, index, obs):
+        if isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError:
+                return False
         if np.isreal(value):
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(index, obs))
@@ -711,6 +745,7 @@ class PEtabConverter:
                     not isinstance(obs_param, COPASI.CModelValue):
                 return False
             obs_param.setValue(value)
+            obs_param.setInitialValue(value)
             return True
         return False
 
