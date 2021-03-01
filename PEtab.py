@@ -139,6 +139,7 @@ class PETabGui(QMainWindow):
             self.ui.wdgDetail.setEnabled(False)
             return
         self.ui.wdgDetail.setEnabled(True)
+        yaml = None
         for (dirpath, dirnames, filenames) in os.walk(full_dir):
             for file in sorted(filenames):
                 if file.startswith('model_'):
@@ -149,9 +150,12 @@ class PETabGui(QMainWindow):
                     self.model = file
                 if file.endswith('.yaml') and not '_solution' in file:
                     self.ui.lstModels.addItem(file)
-                    self.model = file
+                    yaml = file
             break  # skip other dirs
-        if self.model is not None:
+        if yaml is not None:
+            self.model = yaml
+            self.slotSetModel(yaml)
+        elif self.model is not None:
             self.slotSetModel(self.model)
 
     def slotModelSelected(self):
