@@ -401,12 +401,16 @@ class PEtabConverter:
                 is_tc = False
             else:
                 exp.setExperimentType(COPASI.CTaskEnum.Task_timeCourse)
-                if cur_exp['preequilibrationCondition'] is not None:
-                    tc = dm.getTask('Time-Course')
-                    assert (isinstance(tc, COPASI.CTrajectoryTask))
-                    p = tc.getProblem()
-                    assert (isinstance(p, COPASI.CTrajectoryProblem))
-                    p.setStartInSteadyState(True)
+                tc = dm.getTask('Time-Course')
+                assert (isinstance(tc, COPASI.CTrajectoryTask))
+                p = tc.getProblem()
+                assert (isinstance(p, COPASI.CTrajectoryProblem))
+                pre_equilib = cur_exp['preequilibrationCondition']
+                if pre_equilib is not None:
+                    is_empty = np.isreal(pre_equilib) and np.isnan(pre_equilib)
+                    p.setStartInSteadyState(not is_empty)
+                else:
+                    p.setStartInSteadyState(False)
             exp.setSeparator('\t')
             info.sync()
             if 'time' not in cols:
@@ -707,7 +711,7 @@ class PEtabConverter:
             return
 
         if np.isreal(params):
-            if not not np.isnan(params):
+            if not np.isnan(params):
                 self.add_value_transform(params, 1, obs)
             return
 
