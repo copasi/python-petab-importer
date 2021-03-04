@@ -266,7 +266,7 @@ class PEtabConverter:
     def __init__(self, petab_dir, model_name, out_dir='.', out_name=None):
         self.petab_dir = petab_dir
         self.model_name = model_name
-        if model_name.endswith('.yaml'):
+        if model_name.endswith('.yaml') or model_name.endswith('.yml'):
             self.petab = PEtabProblem.from_yaml(os.path.join(petab_dir, model_name))
             self.model_name = os.path.basename(model_name)
         else:
@@ -759,7 +759,7 @@ def main():
 
     if num_args > 2:
         filename = os.path.abspath(sys.argv[1])
-        if not filename.endswith('yml'):
+        if not (filename.endswith('yml') or filename.endswith('yaml')):
             print('Only yml files supported, or directory / model name')
             sys.exit(1)
         petab_dir = os.path.dirname(filename)
