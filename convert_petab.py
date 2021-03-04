@@ -754,19 +754,32 @@ class PEtabConverter:
         return False
 
 
-if __name__ == "__main__":
-
+def main():
     num_args = len(sys.argv)
 
-    if num_args > 3:
+    if num_args > 2:
+        filename = os.path.abspath(sys.argv[1])
+        if not filename.endswith('yml'):
+            print('Only yml files supported, or directory / model name')
+            sys.exit(1)
+        petab_dir = os.path.dirname(filename)
+        model_name = os.path.basename(filename)
+        out_dir = sys.argv[2]
+    elif num_args > 3:
         petab_dir = sys.argv[1]
         model_name = sys.argv[2]
         out_dir = sys.argv[3]
     else:
-        petab_dir = './benchmarks/hackathon_contributions_new_data_format/' \
-                    'Becker_Science2010'
-        model_name = 'Becker_Science2010__BaF3_Exp'
-        out_dir = '.'
+        print('usage: copasi_petab_import [<petab_dir>]  <model_name> <output_dir>')
+        # petab_dir = './benchmarks/hackathon_contributions_new_data_format/' \
+        #             'Becker_Science2010'
+        # model_name = 'Becker_Science2010__BaF3_Exp'
+        # out_dir = '.'
+        sys.exit(1)
 
     converter = PEtabConverter(petab_dir, model_name, out_dir)
     converter.convert()
+
+
+if __name__ == "__main__":
+    main()
