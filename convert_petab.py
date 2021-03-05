@@ -13,7 +13,8 @@ print("using COPASI: %s" % COPASI.CVersion.VERSION.getVersion())
 
 
 class PEtabProblem:
-    def __init__(self, dirname=None, model_name=None, condition_file=None, measurement_file=None, parameter_file=None, simulation_file = None, model_file= None, observable_file = None,yaml_file = None):
+    def __init__(self, dirname=None, model_name=None, condition_file=None, measurement_file=None,
+                 parameter_file=None, simulation_file=None, model_file=None, observable_file=None, yaml_file=None):
         self.directory = dirname
         self.model_name = model_name
 
@@ -134,7 +135,7 @@ class PEtabProblem:
             assignment.setMath(math)
 
         self.transformed_sbml = libsbml.writeSBMLToString(doc)
-        doc = None
+        del doc
 
     @staticmethod
     def _get_time_points(data_set):
@@ -268,7 +269,7 @@ class PEtabConverter:
         self.model_name = model_name
         if model_name.endswith('.yaml') or model_name.endswith('.yml'):
             self.petab = PEtabProblem.from_yaml(os.path.join(petab_dir, model_name))
-            self.model_name = os.path.basename(model_name)
+            self.model_name = os.path.split(os.path.basename(model_name))[0]
         else:
             self.petab = PEtabProblem(petab_dir, model_name)
         self.experiments = {}
@@ -287,7 +288,8 @@ class PEtabConverter:
         self.show_result_per_dependent = False
 
         self.save_report = True
-
+        self.copasi_file = None
+        self.copasi_file_omex = None
 
     @staticmethod
     def get_columns(experiments):
@@ -361,7 +363,7 @@ class PEtabConverter:
                                 # output.write(str(conditions[col]))
                                 if not current_exp['condition'] in self.ignore_independent:
                                     self.ignore_independent[current_exp['condition']] = {}
-                                self.ignore_independent[current_exp['condition']][col] =\
+                                self.ignore_independent[current_exp['condition']][col] = \
                                     conditions[col].values[0]
                     output.write('\n')
                     line += 1
@@ -502,7 +504,7 @@ class PEtabConverter:
                                      'time': [],
                                      'offset': 0,
                                      'condition': condition,
-                                     'preequilibrationCondition':preequilibrationCondition}
+                                     'preequilibrationCondition': preequilibrationCondition}
 
             cur_exp = experiments[cond]
             if obs not in cur_exp['columns'].keys():
@@ -510,7 +512,7 @@ class PEtabConverter:
                 # add transformations only once
                 self.add_transformation_for_params(obs, params)
 
-            cur_exp['columns'][obs].\
+            cur_exp['columns'][obs]. \
                 append((time, value, params, transformation))
 
         for cond in experiments:
@@ -698,6 +700,8 @@ class PEtabConverter:
         dm.saveModel(output_model, True)
         dm.exportCombineArchive(str(os.path.join(out_dir, out_name + '.omex')),
                                 True, False, True, False, True)
+        self.copasi_file = output_model
+        self.copasi_file_omex = str(os.path.join(out_dir, out_name + '.omex'))
 
     def convert(self):
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
