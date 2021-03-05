@@ -16,4 +16,6 @@ setup(
     author_email='frank.bergmann@bioquant.uni-heidelberg.de',
     description='COPASI PEtab Importer',
     entry_points=ENTRY_POINTS,
+    install_requires=['numpy', 'pandas', 'python-copasi', 'python-libsbml', 'pyyaml'],
+    extras_require={'gui': ['PyQt5']},
 )
