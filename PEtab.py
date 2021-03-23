@@ -77,7 +77,7 @@ class PETabGui(QMainWindow):
     def slotOpenInCOPASI(self):
         QDesktopServices.openUrl(
             QUrl.fromLocalFile(
-                os.path.join(self.out_dir, self.model + '.cps')))
+                os.path.join(self.out_dir, os.path.splitext(self.model)[0] + '.cps')))
 
     def slotSetBenchmarkDir(self, dir):
         if not os.path.exists(dir):
@@ -188,7 +188,7 @@ class PETabGui(QMainWindow):
                 os.makedirs(self.out_dir, exist_ok=True)
             full_dir = os.path.join(self.dir, self.model_dir)
             converter = convert_petab.PEtabConverter(full_dir, self.model,
-                                                     self.out_dir, self.model)
+                                                     self.out_dir, os.path.splitext(self.model)[0])
             converter.transform_data = self.ui.chkTransformData.isChecked()
             converter.show_progress_of_fit = self.show_progress
             converter.show_result = self.show_result

@@ -250,7 +250,7 @@ class PEtabProblem:
         with open(self.yaml_file) as yaml_file:
             data = yaml.load(yaml_file, Loader=yaml.FullLoader)
         self.directory = os.path.abspath(os.path.dirname(os.path.abspath(self.yaml_file)))
-        self.model_name = os.path.basename(self.directory)
+        self.model_name = os.path.splitext(os.path.basename(self.yaml_file))[0]
         self.parameter_file = self._get_file(data['parameter_file'])
         problem = data['problems'][0]
         self.condition_file = self._get_file(problem['condition_files'][0])
@@ -271,7 +271,7 @@ class PEtabConverter:
         self.model_name = model_name
         if model_name.endswith('.yaml') or model_name.endswith('.yml'):
             self.petab = PEtabProblem.from_yaml(os.path.join(petab_dir, model_name))
-            self.model_name = os.path.split(os.path.basename(model_name))[0]
+            self.model_name = os.path.splitext(os.path.basename(model_name))[0]
         else:
             self.petab = PEtabProblem(petab_dir, model_name)
         self.experiments = {}
