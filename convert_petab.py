@@ -134,6 +134,8 @@ class PEtabProblem:
             assignment.setVariable(current.observableId)
             assignment.setMath(math)
 
+            all_ids.append(id)
+
         self.transformed_sbml = libsbml.writeSBMLToString(doc)
         del doc
 
