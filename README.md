@@ -18,11 +18,22 @@ The benchmarks are also added as submodule to this repo. So if you do want to us
 
 
 ### Setup
-Create a new virtual environment, and then run `pip install requirements.txt`. Dependencies, are: 
+Create a new virtual environment, and then run `pip install -r requirements.txt`. This will install all the dependencies, these are: 
 
-* pyqt5
-* python-copasi
-* pandas 
+- numpy
+- pandas
+- python-copasi
+- python-libsbml
+- PyQt5
+- pyyaml
+
+You can also directly install the importer in one line directly from git (including the dependencies) using: 
+
+	pip install git+https://github.com/copasi/python-petab-importer.git
+
+and you can run directly: 
+
+	python -m convert_petab
 
 ### Usage
 Once installed, you can use the graphical user interface, specify the benchmark directory, select the test and the model, and you ought to be able to open the generated COPASI file directly. You do this by running: 
