@@ -33,7 +33,7 @@ You can also directly install the importer in one line directly from git (includ
 
 and you can run directly: 
 
-	python -m convert_petab
+	copasi_petab_import  [<petab_dir>]  <model_name> <output_dir>
 
 ### Usage
 Once installed, you can use the graphical user interface, specify the benchmark directory, select the test and the model, and you ought to be able to open the generated COPASI file directly. You do this by running: 
