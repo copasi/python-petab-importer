@@ -294,6 +294,25 @@ class PEtabConverter:
         self.copasi_file_omex = None
 
     @staticmethod
+    def from_yaml(filename, out_dir='.', out_name=None):
+        """Initializes a converter object from the given yaml file
+
+        :param filename: the PEtab yaml file
+        :type filename: str
+
+        :param out_dir: optional output directory (defaults to '.')
+        :type out_dir: str
+        :param out_name: optional name of the output copasi file. Defaults to the basename of the filename + .cps
+               in the output directory
+        :type out_name: str or None
+        :return: the initialized converter
+        :rtype: PEtabConverter
+        """
+        petab_dir = os.path.dirname(filename)
+        model_name = os.path.basename(filename)
+        return PEtabConverter(petab_dir, model_name, out_dir, out_name)
+
+    @staticmethod
     def get_columns(experiments):
         # type: ({}) -> []
         result = []
@@ -706,6 +725,13 @@ class PEtabConverter:
         self.copasi_file_omex = str(os.path.join(out_dir, out_name + '.omex'))
 
     def convert(self):
+        """performs the conversion
+
+        assumes, that the problem `petab`, `out_dir` and `out_name` has already been set
+
+        :return: None
+        """
+
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
 
     def add_transformation_for_params(self, obs, params):
@@ -768,13 +794,13 @@ def main():
         if not (filename.endswith('yml') or filename.endswith('yaml')):
             print('Only yml files supported, or directory / model name')
             sys.exit(1)
-        petab_dir = os.path.dirname(filename)
-        model_name = os.path.basename(filename)
         out_dir = sys.argv[2]
+        converter = PEtabConverter.from_yaml(filename, out_dir)
     elif num_args > 3:
         petab_dir = sys.argv[1]
         model_name = sys.argv[2]
         out_dir = sys.argv[3]
+        converter = PEtabConverter(petab_dir, model_name, out_dir)
     else:
         print('usage: copasi_petab_import [<petab_dir>]  <model_name> <output_dir>')
         # petab_dir = './benchmarks/hackathon_contributions_new_data_format/' \
@@ -782,8 +808,8 @@ def main():
         # model_name = 'Becker_Science2010__BaF3_Exp'
         # out_dir = '.'
         sys.exit(1)
+        return
 
-    converter = PEtabConverter(petab_dir, model_name, out_dir)
     converter.convert()
 
 
