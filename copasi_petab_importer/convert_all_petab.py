@@ -1,4 +1,4 @@
-import convert_petab
+from copasi_petab_importer import convert_petab
 import sys
 import os
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         base_dir = sys.argv[1]
         out_dir = sys.argv[2]
     else:
-        base_dir = './benchmarks/hackathon_contributions_new_data_format'
-        out_dir = './out'
+        base_dir = '../benchmarks/hackathon_contributions_new_data_format'
+        out_dir = '../out'
 
     convert_all_benchmarks(base_dir, out_dir)

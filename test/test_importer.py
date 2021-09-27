@@ -3,7 +3,7 @@ import sys
 import os
 _PATH = os.path.abspath("./")
 sys.path.append(_PATH)
-import convert_petab
+from copasi_petab_importer import convert_petab
 
 
 def test_copasi_version():

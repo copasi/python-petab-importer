@@ -2,14 +2,17 @@ from setuptools import setup
 
 ENTRY_POINTS = {
     'console_scripts': [
-        'copasi_petab_import =convert_petab:main',
+        'copasi_petab_import=copasi_petab_importer.convert_petab:main',
+        'copasi_petab_gui=copasi_petab_importer.PEtab:petab_gui',
     ]
 }
 
 setup(
-    name='python-petab-importer',
+    name='copasi-petab-importer',
     version='0.0.1',
-    packages=[''],
+    packages=['copasi_petab_importer'],
+    py_module=['copasi_petab_importer'],
+    package_dir={'copasi_petab_importer': 'copasi_petab_importer'},
     url='https://github.com/copasi/python-petab-importer',
     license='Artistic-2.0',
     author='Frank T. Bergmann',
@@ -18,4 +21,5 @@ setup(
     entry_points=ENTRY_POINTS,
     install_requires=['numpy', 'pandas', 'python-copasi', 'python-libsbml', 'pyyaml'],
     extras_require={'gui': ['PyQt5']},
+    package_data={'copasi_petab_importer': ['*.ui']}
 )

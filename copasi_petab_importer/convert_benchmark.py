@@ -125,11 +125,11 @@ if __name__ == "__main__":
         output_dir = sys.argv[4]
         output_name = sys.argv[5]
     else:
-        bench_dir = './benchmarks/Benchmark-Models/Bachmann_MSB2011'
+        bench_dir = '../benchmarks/Benchmark-Models/Bachmann_MSB2011'
         model_file = bench_dir + '/SBML/model1_data1_l2v4.xml'
         data_file = bench_dir + '/Data/model1_data1.xlsx'
         info_file = bench_dir + '/General_info.xlsx'
-        output_dir = '.'
+        output_dir = '..'
         output_name = 'out_bach1.cps'
 
     convert_benchmark(model_file, data_file, info_file,

@@ -7,7 +7,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QUrl, QSettings, Qt
 from PyQt5.QtGui import QDesktopServices
 
-import convert_petab
+from copasi_petab_importer import convert_petab
 
 
 class PETabGui(QMainWindow):
@@ -26,7 +26,7 @@ class PETabGui(QMainWindow):
         self.show_result_per_dependent = False
         self.write_report = False
 
-        self.ui = uic.loadUi('petab.ui', self)
+        self.ui = uic.loadUi(os.path.join(os.path.dirname(__file__), 'petab.ui'), self)
 
         self.center()
         self.load_settings()
@@ -36,10 +36,18 @@ class PETabGui(QMainWindow):
     def closeEvent(self, event):
         self.save_settings()
 
-    def load_settings(self):
-        settings = QSettings("petab.ini", QSettings.IniFormat)
+    @staticmethod
+    def _get_user_dir():
+        home = os.getenv("HOME")
+        if home is not None:
+            return home
+        from pathlib import Path
+        return Path.home()
 
-        benchmark_dir = './benchmarks/hackathon_contributions_new_data_format'
+    def load_settings(self):
+        settings = QSettings(os.path.join(PETabGui._get_user_dir(), ".petab.ini"), QSettings.IniFormat)
+
+        benchmark_dir = '../benchmarks/hackathon_contributions_new_data_format'
         self.dir = settings.value("dir", benchmark_dir)
         self.model_dir = settings.value("model_dir", r'Becker_Science2010')
         self.model = settings.value("model", 'Becker_Science2010__BaF3_Exp')
@@ -59,7 +67,7 @@ class PETabGui(QMainWindow):
         self.ui.chkWriteReport.setChecked(self.write_report)
 
     def save_settings(self):
-        settings = QSettings("petab.ini", QSettings.IniFormat)
+        settings = QSettings(os.path.join(PETabGui._get_user_dir(), ".petab.ini"), QSettings.IniFormat)
         settings.setValue("dir", self.dir)
         settings.setValue("model_dir", self.model_dir)
         settings.setValue("model", self.model)
@@ -213,7 +221,11 @@ class PETabGui(QMainWindow):
         self.move(qr.topLeft())
 
 
-if __name__ == '__main__':
+def petab_gui():
     app = QApplication(sys.argv)
     widget = PETabGui()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    petab_gui()
