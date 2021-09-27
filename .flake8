@@ -7,4 +7,5 @@ exclude =
     ./.vscode,
     ./out,
     ./test,
+    ./versioneer.py,
     .git
