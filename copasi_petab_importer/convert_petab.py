@@ -780,8 +780,8 @@ class PEtabConverter:
             if obs_param is None or \
                     not isinstance(obs_param, COPASI.CModelValue):
                 return False
-            obs_param.setValue(value)
-            obs_param.setInitialValue(value)
+            obs_param.setValue(float(value))
+            obs_param.setInitialValue(float(value))
             return True
         return False
 
