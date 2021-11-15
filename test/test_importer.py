@@ -1,9 +1,18 @@
+import unittest
+
 import COPASI
 import sys
 import os
 _PATH = os.path.abspath("./")
 sys.path.append(_PATH)
 from copasi_petab_importer import convert_petab
+import glob
+
+try:
+    import petabtests
+    petab_tests_available = True
+except ImportError:
+    petab_tests_available = False
 
 
 def test_copasi_version():
@@ -37,3 +46,13 @@ def test_import():
     converter.convert()
 
     assert os.path.exists(converter.experimental_data_file)
+
+
+@unittest.skipUnless(petab_tests_available, 'petabtests need to be installed to run this')
+def test_petabtest_import():
+    cases = [c for c in glob.glob(petabtests.CASES_DIR + '/*/*.yaml') if '0' in c and 'solution' not in c]
+    for case in cases:
+        if '17' not in case:
+            continue
+        converter = convert_petab.PEtabConverter.from_yaml(case)
+        converter.convert()

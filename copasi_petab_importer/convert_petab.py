@@ -484,10 +484,15 @@ class PEtabConverter:
                         cn = obj.getInitialConcentrationReference().getCN()
                     else:
                         cn = obj.getInitialValueReference().getCN()
-                    role = COPASI.CExperiment.independent
-                    obj_map.setRole(num_cols + i, role)
-                    obj_map.setObjectCN(num_cols + i, cn)
-                    continue
+
+                    # if value is set to NaN, it is not supposed to be used as condition, but actually to be estimated
+                    cond_value = float(petab.condition_data.loc[petab.condition_data.conditionId == cond][cond_cols[i]])
+                    if not np.isnan(cond_value):
+                        # now map to independent, as the value is not NaN
+                        role = COPASI.CExperiment.independent
+                        obj_map.setRole(num_cols + i, role)
+                        obj_map.setObjectCN(num_cols + i, cn)
+                        continue
                 obj_map.setRole(num_cols + i, role)
 
     def generate_copasi_data(self, petab):
