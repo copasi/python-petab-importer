@@ -604,10 +604,15 @@ class PEtabConverter:
             value = float(current['nominalValue'])
 
             obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
+            if obj is None:
+                obj = dm.findObjectByDisplayName(str('Values[' + current.parameterName + ']'))
             if estimate == 0:
                 # update the initial value but don't create an item for it
                 if obj is not None:
                     obj.setInitialValue(value)
+                else:
+                    # could not resolve object, look into this
+                    logging.warning('could not resolve object {0} for fit item'.format(name))
                 continue
 
             if obj is None:
