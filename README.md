@@ -16,6 +16,12 @@ The benchmarks are also added as submodule to this repo. So if you do want to us
 	git submodule init 
 	git submodule update
 
+### Run PEtab the easy way
+This project is used direclty from [basico](https://basico.rtdf.io), where we directly implement a PetabSimulator. So if you are interested in just running PEtab problems with COPASI, I recommend to 
+
+	pip install copasi-basico[petab]
+	
+and then follow the [basico petab example](https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html). Otherwise, this project can of course be used on its own as described below. 
 
 ### Setup
 Create a new virtual environment, and then run `pip install -r requirements.txt`. This will install all the dependencies, these are: 
