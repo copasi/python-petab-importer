@@ -446,7 +446,19 @@ class PEtabConverter:
                     observable_name = noise_formula[index + 1:]
                     # get the noiseParameters
                     noise_parameter = petab.measurement_data.query('observableId == "' + observable_name + '"') \
-                                      .noiseParameters.values[0].split(';')
+                                      .noiseParameters.values
+                    if len(noise_parameter) == 0:
+                        return False
+
+                    try:
+                        noise_parameter = noise_parameter[0].split(';')
+                    except AttributeError:
+                        try:
+                            noise_parameter = float(noise_parameter)
+                            noise_parameter = [ noise_parameter]
+                        except ValueError:
+                            return False
+
                     if len(noise_parameter) >= number:
                         # get the value from the column
                         noise_parameter = noise_parameter[number - 1]
