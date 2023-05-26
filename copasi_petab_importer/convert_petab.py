@@ -454,7 +454,7 @@ class PEtabConverter:
                         noise_parameter = noise_parameter[0].split(';')
                     except AttributeError:
                         try:
-                            noise_parameter = float(noise_parameter)
+                            noise_parameter = float(noise_parameter[0])
                             noise_parameter = [ noise_parameter]
                         except ValueError:
                             return False
