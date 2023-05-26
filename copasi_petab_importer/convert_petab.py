@@ -9,7 +9,9 @@ import libsbml
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
-print("using COPASI: %s" % COPASI.CVersion.VERSION.getVersion())
+
+logger = logging.getLogger(__name__)
+logger.info("using COPASI: %s" % COPASI.CVersion.VERSION.getVersion())
 
 
 class PEtabProblem:
@@ -94,9 +96,9 @@ class PEtabProblem:
 
             # ignore invalid ids
             if not libsbml.SyntaxChecker_isValidSBMLSId(id):
-                logging.warning(
+                logger.warning(
                     'Invalid observableId {0} in observable table'.
-                        format(id))
+                    format(id))
                 continue
 
             name = id
@@ -104,23 +106,38 @@ class PEtabProblem:
             # if we have one already, don't add again
             # something ought to be wrong with the table here
             if id in all_ids:
-                logging.warning(
+                logger.warning(
                     'observableId {0} appears already in the model'.
-                        format(id))
+                    format(id))
                 continue
 
             formula = current.observableFormula
             if not isinstance(formula, str):
-                logging.warning(
+                logger.warning(
                     'Invalid observableFormula for observableId {0}'.
-                        format(id))
+                    format(id))
                 continue
+
+            if 'observableTransformation' in current:
+                transformation = current.observableTransformation
+                if not isinstance(transformation, str):
+                    logger.warning(
+                        'Invalid observableTransformation for observableId {0} default to lin'.
+                        format(id))
+                    transformation = 'lin'
+            else:
+                transformation = 'lin'
+
+            if transformation == 'log':
+                formula = 'ln({0})'.format(formula)
+            elif transformation == 'log10':
+                formula = 'log({0})'.format(formula)
 
             math = libsbml.parseL3Formula(formula)
             if math is None:
-                logging.warning(
+                logger.warning(
                     'Invalid observableFormula for observableId {0}'.
-                        format(id))
+                    format(id))
                 continue
 
             self.add_missing_params(model, math)
@@ -389,6 +406,80 @@ class PEtabConverter:
                     output.write('\n')
                     line += 1
 
+    def assign_weight(self, petab, observable, obj_map, i):
+        """ retrieves the weight from the petab problem for the given column
+        """
+
+        noise_formula = petab.observable_data.query('observableId == "' + observable + '"').noiseFormula.values[0]
+
+        # check if it is a number if so use it
+        try:
+            value = float(noise_formula)
+            obj_map.setScale(i, value)
+            return True
+        except ValueError:
+            pass
+
+        # otherwise we search for it in the parameter table
+        parameter = petab.parameter_data.query('parameterId == "' + noise_formula + '"')
+
+        if len(parameter) == 0:
+            # check whether the noise formula is a parameter in the model
+            mv = dm.getModel().getModelValue(noise_formula)
+            if mv is not None:
+                # if so, we use it
+                obj_map.setScale(i, mv.getInitialValue())
+                return True
+
+            # if the noise formula starts with 'noiseParameter' and a number, we should
+            # be taking the value from the noiseParameters column in the measurement
+            # table
+            if noise_formula.startswith('noiseParameter'):
+                # strip the noiseParameter part
+                noise_formula = noise_formula[14:]
+                # find the index until the next '_'
+                index = noise_formula.find('_')
+                if index > 0:
+                    # get the number
+                    number = int(noise_formula[0:index])
+                    # get the observable name
+                    observable_name = noise_formula[index + 1:]
+                    # get the noiseParameters
+                    noise_parameter = petab.measurement_data.query('observableId == "' + observable_name + '"') \
+                                      .noiseParameters.values[0].split(';')
+                    if len(noise_parameter) >= number:
+                        # get the value from the column
+                        noise_parameter = noise_parameter[number - 1]
+                        # now that we have the parameter check whether it is a number
+                        try:
+                            value = float(noise_parameter)
+                            obj_map.setScale(i, value)
+                            return True
+                        except ValueError:
+                            pass
+                        # otherwise look for it in the parameter table
+                        parameter = petab.parameter_data.query('parameterId == "' + noise_parameter + '"')
+                        return self._assign_weight_from_parameter(parameter, noise_parameter, obj_map, i)
+            logger.debug('Unsupported noise formula %s. Ignoring it.' % noise_formula)
+            return False
+
+        return self._assign_weight_from_parameter(parameter, noise_formula, obj_map, i)
+
+    def _assign_weight_from_parameter(self, parameter, noise_formula, obj_map, i):
+        if len(parameter) == 0:
+            return False
+        if parameter.iloc[0].estimate == 1:
+            logger.debug('COPASI cannot estimate the noise parameter %s. Ignoring it.' % noise_formula)
+            return False
+        # take the nominal value
+        try:
+            value = float(parameter.iloc[0].nominalValue)
+            obj_map.setScale(i, value)
+            return True
+        except ValueError:
+            pass
+        return False
+
     def create_mapping(self, experiments, petab):
         task = dm.getTask('Parameter Estimation')
         # mark task as executable, so it can be run by copasi se
@@ -464,7 +555,9 @@ class PEtabConverter:
                             role = COPASI.CExperiment.dependent
                             obj_map.setRole(i, role)
                             obj_map.setObjectCN(i, cn)
-                            exp.calculateWeights()
+                            if not self.assign_weight(petab, all_cols[i], obj_map, i):
+                                exp.calculateWeights()
+                            # exp.calculateWeights()
                             continue
                 obj_map.setRole(i, role)
 
@@ -512,17 +605,28 @@ class PEtabConverter:
             value = data.measurement[i]
             params = data.observableParameters[i] \
                 if 'observableParameters' in data else None
-            transformation = data.observableTransformation[i] \
-                if 'observableTransformation' in data else 'lin'
+
+            try:
+                transformation = \
+                petab.observable_data.loc[petab.observable_data.observableId == obs]['observableTransformation'].values[
+                    0]
+                if transformation == 'log':
+                    value = math.log(float(value))
+                elif transformation == 'log10':
+                    value = math.log10(float(value))
+            except IndexError:
+                transformation = data.observableTransformation[i] \
+                    if 'observableTransformation' in data else 'lin'
+                pass
+            except KeyError:
+                transformation = data.observableTransformation[i] \
+                    if 'observableTransformation' in data else 'lin'
+                pass
+
             condition = data.simulationConditionId[i] \
                 if 'simulationConditionId' in data else None
             preequilibrationCondition = data.preequilibrationConditionId[i] \
                 if 'preequilibrationConditionId' in data else None
-
-            # if self.transform_data and transformation == 'log10':
-            #     value = math.pow(10.0, float(value))
-            # elif self.transform_data and transformation == 'log':
-            #     value = math.exp(float(value))
 
             if cond not in experiments.keys():
                 experiments[cond] = {'name': cond,
@@ -611,8 +715,10 @@ class PEtabConverter:
                 if obj is not None:
                     obj.setInitialValue(value)
                 else:
-                    # could not resolve object, look into this
-                    logging.warning('could not resolve object {0} for fit item'.format(name))
+                    # check whether this is used in a noiseFormula
+                    if not self.petab.observable_data.noiseFormula.str.contains(name).any():
+                        # otherwise raise warning since we could not resolve object
+                        logger.warning('could not resolve object {0} for fit item'.format(name))
                 continue
 
             if obj is None:
@@ -620,7 +726,7 @@ class PEtabConverter:
                 # to create it first
                 model = dm.getModel()
                 obj = model.createModelValue(name, value)
-                logging.debug('created model value {0} for fit item'.format(name))
+                logger.debug('created model value {0} for fit item'.format(name))
 
             # update the initial value
             obj.setInitialValue(value)
@@ -646,16 +752,16 @@ class PEtabConverter:
                 if obj is None:
                     obj = dm.findObjectByDisplayName(name)
                 if obj is None:
-                    logging.warning(
+                    logger.warning(
                         'No model value for {0} to create fit item for'.
-                            format(name))
+                        format(name))
                     continue
 
                 current = parameters[parameters.parameterId == parameterId]
                 if current.shape[0] == 0:
                     # this should not be happening
-                    logging.warning('No entry for {0} in parameter table'.
-                                    format(parameterId))
+                    logger.warning('No entry for {0} in parameter table'.
+                                   format(parameterId))
                     continue
                 current = current.iloc[0]
                 # if current.parameterScale == 'log10':
@@ -744,8 +850,8 @@ class PEtabConverter:
 
         self.generate_copasi_file(self.petab, self.out_dir, self.out_name)
 
-    def add_transformation_for_params(self, obs, params):
-        # type: (str, str) -> None
+    def add_transformation_for_params(self, obs, params, transformation='lin'):
+        # type: (str, str, str) -> None
         """ add assignment rules to observable parameters """
         count = 0
 
@@ -754,7 +860,7 @@ class PEtabConverter:
 
         if np.isreal(params):
             if not np.isnan(params):
-                self.add_value_transform(params, 1, obs)
+                self.add_value_transform(params, 1, obs, transformation)
             return
 
         for param in params.split(';'):
@@ -762,12 +868,12 @@ class PEtabConverter:
             obj = dm.findObjectByDisplayName('Values[' + param + ']')
             if obj is None:
                 # it could be a value
-                if self.add_value_transform(param, count, obs):
+                if self.add_value_transform(param, count, obs, transformation):
                     continue
                 # otherwise add it as model value and try mapping
                 obj = dm.getModel().createModelValue(param, 1.0)
-                logging.debug('created model value {0} for transformation'.
-                              format(param))
+                logger.debug('created model value {0} for transformation'.
+                             format(param))
 
             obs_param = dm.findObjectByDisplayName(
                 'Values[observableParameter{0}_{1}]'.format(count, obs))
@@ -775,10 +881,15 @@ class PEtabConverter:
                     not isinstance(obs_param, COPASI.CModelValue):
                 continue
             obs_param.setStatus(COPASI.CModelValue.Status_ASSIGNMENT)
-            obs_param.setExpression('<{0}>'.format(obj.getCN()))
+            if transformation == 'log':
+                obs_param.setExpression('ln(<{0}>)'.format(obj.getCN()))
+            elif transformation == 'log10':
+                obs_param.setExpression('log(<{0}>)'.format(obj.getCN()))
+            else:
+                obs_param.setExpression('<{0}>'.format(obj.getCN()))
 
     @staticmethod
-    def add_value_transform(value, index, obs):
+    def add_value_transform(value, index, obs, transformation='lin'):
         if isinstance(value, str):
             try:
                 value = float(value)
@@ -790,8 +901,24 @@ class PEtabConverter:
             if obs_param is None or \
                     not isinstance(obs_param, COPASI.CModelValue):
                 return False
-            obs_param.setValue(float(value))
-            obs_param.setInitialValue(float(value))
+            if transformation == 'log':
+                try:
+                    value = math.log(float(value))
+                except ValueError:
+                    logger.warning('encountered value {0} for log transform for measurement of observable {1}'.format(
+                        value, obs))
+                    value = 0
+            elif transformation == 'log10':
+                try:
+                    value = math.log10(float(value))
+                except ValueError:
+                    logger.warning('encountered value {0} for log transform for measurement of observable {1}'.format(
+                        value, obs))
+                    value = 0
+            else:
+                value = float(value)
+            obs_param.setValue(value)
+            obs_param.setInitialValue(value)
             return True
         return False
 

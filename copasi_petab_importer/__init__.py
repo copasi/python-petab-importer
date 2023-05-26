@@ -7,7 +7,8 @@ try:
     from .PEtab import petab_gui
 except ImportError:
     import logging
-    logging.debug('PETabGui not available as PyQt5 is not installed')
+    logger = logging.getLogger(__name__)
+    logger.debug('PETabGui not available as PyQt5 is not installed')
 
 from . import _version
 __version__ = _version.get_versions()['version']
