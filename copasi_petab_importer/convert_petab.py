@@ -95,7 +95,7 @@ class PEtabProblem:
             id = current.observableId
 
             # ignore invalid ids
-            if not libsbml.SyntaxChecker_isValidSBMLSId(id):
+            if not libsbml.SyntaxChecker.isValidSBMLSId(id):
                 logger.warning(
                     'Invalid observableId {0} in observable table'.
                     format(id))
