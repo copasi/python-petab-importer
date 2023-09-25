@@ -396,7 +396,7 @@ class PEtabConverter:
                         for col in petab.independent_columns:
                             output.write('\t')
                             try:
-                                output.write(str(float(conditions[col])))
+                                output.write(str(float(conditions[col].iloc[0])))
                             except ValueError:
                                 # output.write(str(conditions[col]))
                                 if not current_exp['condition'] in self.ignore_independent:
@@ -591,7 +591,7 @@ class PEtabConverter:
                         cn = obj.getInitialValueReference().getCN()
 
                     # if value is set to NaN, it is not supposed to be used as condition, but actually to be estimated
-                    cond_value = float(petab.condition_data.loc[petab.condition_data.conditionId == cond][cond_cols[i]])
+                    cond_value = float(petab.condition_data.loc[petab.condition_data.conditionId == cond][cond_cols[i]].iloc[0])
                     if not np.isnan(cond_value):
                         # now map to independent, as the value is not NaN
                         role = COPASI.CExperiment.independent
@@ -720,7 +720,7 @@ class PEtabConverter:
             value = float(current['nominalValue'])
 
             obj = dm.findObjectByDisplayName(str('Values[' + name + ']'))
-            if obj is None:
+            if obj is None and 'parameterName' in current:
                 obj = dm.findObjectByDisplayName(str('Values[' + current.parameterName + ']'))
             if estimate == 0:
                 # update the initial value but don't create an item for it
