@@ -750,10 +750,10 @@ class PEtabConverter:
             item = problem.addOptItem(cn)
             if np.isnan(lower):
                 lower = math.pow(10, -6)
-            item.setLowerBound(COPASI.CCommonName(str(lower)))
+            item.setLowerBound(COPASI.CRegisteredCommonName(str(lower)))
             if np.isnan(upper):
                 upper = math.pow(10, 6)
-            item.setUpperBound(COPASI.CCommonName(str(upper)))
+            item.setUpperBound(COPASI.CRegisteredCommonName(str(upper)))
             item.setStartValue(value)  # as well as the initial value
 
         # create experiment specific fit items
@@ -799,10 +799,10 @@ class PEtabConverter:
                 item = problem.addFitItem(cn)
                 if np.isnan(lower):
                     lower = math.pow(10, -6)
-                item.setLowerBound(COPASI.CCommonName(str(lower)))
+                item.setLowerBound(COPASI.CRegisteredCommonName(str(lower)))
                 if np.isnan(upper):
                     upper = math.pow(10, 6)
-                item.setUpperBound(COPASI.CCommonName(str(upper)))
+                item.setUpperBound(COPASI.CRegisteredCommonName(str(upper)))
                 item.setStartValue(value)  # as well as the initial value
                 item.addExperiment(self.experiment_to_key[condition])
 

@@ -78,8 +78,8 @@ def add_fit_items(parameters):
 
         # if we found it, get its internal identifier and create the item
         item = problem.addOptItem(cn)
-        item.setLowerBound(COPASI.CCommonName(str(lower)))   # set the lower
-        item.setUpperBound(COPASI.CCommonName(str(upper)))   # and upper bound
+        item.setLowerBound(COPASI.CRegisteredCommonName(str(lower)))   # set the lower
+        item.setUpperBound(COPASI.CRegisteredCommonName(str(upper)))   # and upper bound
         item.setStartValue(value)                # as well as the initial value
 
 
