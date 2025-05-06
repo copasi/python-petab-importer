@@ -813,7 +813,7 @@ class PEtabConverter:
     def generate_copasi_file(self, petab, out_dir, out_name):
         output_model = str(os.path.join(out_dir, out_name + '.cps'))
         try:
-            if not dm.importSBMLFromString(petab.transformed_sbml):
+            if not dm.importSBMLFromString(petab.transformed_sbml, None, True):
                 raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
         except COPASI.CCopasiException:
             raise ValueError(COPASI.CCopasiMessage.getAllMessageText())

@@ -91,7 +91,7 @@ def convert_benchmark(sbml_file, data_file, info_file, output_dir, out_name):
                                      os.path.basename(out_name))[0] + '.txt')
     data.to_csv(exp_file_name, index=False)
 
-    if not dm.importSBML(sbml_file):
+    if not dm.importSBML(sbml_file, None, True):
         raise ValueError(COPASI.CCopasiMessage.getAllMessageText())
 
     dm.saveModel(os.path.join(output_dir, out_name), True)
