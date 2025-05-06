@@ -2,5 +2,5 @@ numpy
 pandas
 python-copasi
 python-libsbml
-PyQt5
+PyQt5; extra == "gui"
 pyyaml
