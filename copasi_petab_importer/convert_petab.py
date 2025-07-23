@@ -600,8 +600,26 @@ class PEtabConverter:
                         continue
                 obj_map.setRole(num_cols + i, role)
 
-    def generate_copasi_data(self, petab):
+    def update_conditions(self, petab):
+        # go through all columns of the condition table
+        # and replace potential NaN entries with the value from the model
+        # ignore the first column (conditionId)
+        for col in petab.condition_data.columns[1:]:
+            if petab.condition_data[col].isna().any():
+                for i in range(petab.condition_data.shape[0]):
+                    if np.isnan(petab.condition_data.loc[i, col]):
+                        obj = dm.findObjectByDisplayName(str('Values[' + col + ']'))
+                        if obj is None:
+                            obj = dm.findObjectByDisplayName(col)
+                        if obj is not None:
+                            if isinstance(obj, COPASI.CMetab):
+                                value = obj.getInitialConcentration()
+                            else:
+                                value = obj.getInitialValue()
+                            petab.condition_data.loc[i, col] = value
 
+    def generate_copasi_data(self, petab):
+        self.update_conditions(petab)
         self.experiments = self.get_experiments(petab)
         self.write_experiments(self.experiments, petab)
         self.create_mapping(self.experiments, petab)

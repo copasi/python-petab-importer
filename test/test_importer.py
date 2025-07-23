@@ -16,6 +16,7 @@ try:
 except ImportError:
     petab_tests_available = False
 
+
 class TestConverter(unittest.TestCase):
     def test_copasi_version(self):
         self.assertGreater(int(COPASI.CVersion.VERSION.getVersionDevel()),  214,
@@ -45,6 +46,7 @@ class TestConverter(unittest.TestCase):
         converter.convert()
 
         self.assertTrue(os.path.exists(converter.experimental_data_file))
+
     @unittest.skipIf(not os.path.exists(_BENCHMARK_DIR), 'benchmarks not available')
     def test_import_bachmann(self):
         petab_dir = os.path.join(_BENCHMARK_DIR, 'Bachmann_MSB2011')
@@ -58,6 +60,7 @@ class TestConverter(unittest.TestCase):
         converter.convert()
 
         self.assertTrue(os.path.exists(converter.experimental_data_file))
+
     @unittest.skipUnless(petab_tests_available, 'petabtests need to be installed to run this')
     def test_petabtest_import(self):
         cases = [c for c in glob.glob(str(petabtests.CASES_DIR) + '/*/*.yaml') if '0' in c and 'solution' not in c]
