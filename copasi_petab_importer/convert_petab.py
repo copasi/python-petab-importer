@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import logging
 import libsbml
+from sympy import cot
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
@@ -607,7 +608,14 @@ class PEtabConverter:
         for col in petab.condition_data.columns[1:]:
             if petab.condition_data[col].isna().any():
                 for i in range(petab.condition_data.shape[0]):
-                    if np.isnan(petab.condition_data.loc[i, col]):
+                    val = petab.condition_data.loc[i, col]
+                    if pd.isnull(val): 
+                        continue
+                    try: 
+                        val = float(val)
+                    except ValueError:
+                        continue
+                    if np.isnan(val):
                         obj = dm.findObjectByDisplayName(str('Values[' + col + ']'))
                         if obj is None:
                             obj = dm.findObjectByDisplayName(col)
