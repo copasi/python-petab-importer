@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 import logging
 import libsbml
-from sympy import cot
 
 dm = COPASI.CRootContainer.addDatamodel()
 assert (isinstance(dm, COPASI.CDataModel))
