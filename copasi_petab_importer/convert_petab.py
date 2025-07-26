@@ -752,8 +752,9 @@ class PEtabConverter:
                 if obj is not None:
                     obj.setInitialValue(value)
                 else:
-                    # check whether this is used in a noiseFormula
-                    if not self.petab.observable_data.noiseFormula.str.contains(name).any():
+                    # check whether this is used in a noiseFormula if type is string
+                    if isinstance(self.petab.observable_data.noiseFormula, str) and \
+                       not self.petab.observable_data.noiseFormula.str.contains(name).any():
                         # otherwise raise warning since we could not resolve object
                         logger.warning('could not resolve object {0} for fit item'.format(name))
                 continue

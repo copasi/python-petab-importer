@@ -3,6 +3,7 @@ import unittest
 import COPASI
 import sys
 import os
+from pathlib import Path
 _PATH = os.path.abspath(os.path.dirname(__file__))
 _BENCHMARK_DIR = os.path.join(_PATH, '..', 'benchmarks',
                               'hackathon_contributions_new_data_format')
@@ -14,6 +15,7 @@ try:
     import petabtests
     petab_tests_available = True
 except ImportError:
+    print("petabtests not available")
     petab_tests_available = False
 
 
@@ -63,10 +65,10 @@ class TestConverter(unittest.TestCase):
 
     @unittest.skipUnless(petab_tests_available, 'petabtests need to be installed to run this')
     def test_petabtest_import(self):
-        cases = [c for c in glob.glob(str(petabtests.CASES_DIR) + '/*/*.yaml') if '0' in c and 'solution' not in c]
+        cases = [c for c in glob.glob(str(petabtests.CASES_DIR / Path('v1.0.0/sbml')) + '/*/*.yaml') if '0' in c and 'solution' not in c]
         for case in cases:
-            if '17' not in case:
-                continue
+            #if '17' not in case:
+            #    continue
             converter = convert_petab.PEtabConverter.from_yaml(case)
             converter.convert()
 
